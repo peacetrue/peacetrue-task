@@ -4,7 +4,8 @@ import com.github.peacetrue.spring.util.BeanUtils;
 import com.github.peacetrue.task.executor.Task;
 import com.github.peacetrue.task.service.TaskService;
 import com.github.peacetrue.task.service.TaskVO;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Objects;
 import java.util.Set;
@@ -13,7 +14,8 @@ import java.util.stream.Collectors;
 /**
  * @author xiayx
  */
-@Data
+@Getter
+@Setter
 public class RealTimeTask extends TaskVO implements Task {
 
     private TaskService taskService;
@@ -27,11 +29,12 @@ public class RealTimeTask extends TaskVO implements Task {
         if (dependent == null) {
             dependent = taskService.getDependent(getId()).stream().map(vo -> {
                 RealTimeTask dto = BeanUtils.map(vo, RealTimeTask.class);
-                executed.stream().filter(task -> task.equals(dto)).findAny().ifPresent(task -> {
-                    dto.setStateCode(task.getStateCode());
-                    dto.setOutput(task.getOutput());
-                    dto.setDuration(task.getDuration());
-                });
+                executed.stream().filter(task -> task.equals(dto)).findAny()
+                        .ifPresent(task -> {
+                            dto.setStateCode(task.getStateCode());
+                            dto.setOutput(task.getOutput());
+                            dto.setDuration(task.getDuration());
+                        });
                 dto.setTaskService(taskService);
                 dto.setOperatorId(operatorId);
                 dto.setExecuted(executed);
