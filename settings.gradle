@@ -1,0 +1,9 @@
+rootProject.name = 'peacetrue-task'
+include 'peacetrue-task-service-api'
+include 'peacetrue-task-service-mybatis'
+include 'peacetrue-task-controller'
+include 'peacetrue-task-executor-api'
+include 'peacetrue-task-executor-impl'
+include 'peacetrue-task-ui'
+include 'peacetrue-task-sample'
+                                     

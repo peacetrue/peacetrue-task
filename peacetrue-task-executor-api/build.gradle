@@ -1,0 +1,5 @@
+description '任务执行器'
+
+dependencies {
+    compile project(':peacetrue-task-service-api')
+}

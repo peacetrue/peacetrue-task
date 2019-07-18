@@ -1,0 +1,40 @@
+description '任务服务mybatis实现'
+
+configurations {
+    testArtifacts.extendsFrom testRuntime
+}
+
+task testJar(type: Jar) {
+    archiveClassifier = 'test'
+    from sourceSets.test.output
+}
+
+artifacts {
+    testArtifacts testJar
+}
+
+dependencies {
+
+    compile project(":peacetrue-task-service-api")
+    compile project(":peacetrue-task-executor-api")
+
+    compile 'org.slf4j:slf4j-api'
+    compile 'org.mybatis:mybatis'
+    compile 'org.mybatis.dynamic-sql:mybatis-dynamic-sql'
+    compile 'org.mybatis:mybatis-spring'
+    compile 'com.github.pagehelper:pagehelper-spring-boot-starter:1.2.3'
+    compile 'com.github.peacetrue:peacetrue-spring:1.0-SNAPSHOT'
+    compile 'com.github.peacetrue:peacetrue-mybatis:1.0-SNAPSHOT'
+    compile 'com.github.peacetrue:peacetrue-associate:1.0-SNAPSHOT'
+    compile 'org.springframework.data:spring-data-commons'
+    compile 'com.github.peacetrue:peacetrue-jackson:1.2.1-SNAPSHOT'
+    compile "org.springframework.boot:spring-boot-autoconfigure"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    testCompile 'junit:junit'
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile 'org.mybatis.spring.boot:mybatis-spring-boot-starter'
+    testCompile 'org.springframework.data:spring-data-commons'
+    testCompile 'com.h2database:h2'
+    testCompile 'ch.qos.logback:logback-classic'
+}

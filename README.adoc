@@ -1,0 +1,76 @@
+= 任务组件
+xiayx <xiayouxue@hotmail.com>
+v1.0, 2019-05-19: SNAPSHOT
+:doctype: docbook
+:toc: left
+:numbered:
+:imagesdir: docs/assets/images
+:sourcedir: src/main/java
+:resourcesdir: src/main/resources
+:testsourcedir: src/test/java
+:source-highlighter: highlightjs
+
+== 流程说明
+image::flow.png[]
+
+== 模块说明
+image::structure.png[]
+
+== 示例项目
+* 运行``peacetrue-task-sample/src/main/java/com/github/peacetrue/task/TaskApplication.java``启动服务
+* 运行``peacetrue-task-ui/test/task-list.html``查看页面效果
+
+== 使用说明
+.配置快照仓库
+[source%nowrap,gradle]
+----
+<repository>
+    <id>sonatype-snapshots</id>
+    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+</repository>
+----
+
+.使用执行器
+[source%nowrap,gradle]
+----
+<dependency>
+  <groupId>com.github.peacetrue.task</groupId>
+  <artifactId>peacetrue-task-executor-impl</artifactId>
+  <version>1.1-SNAPSHOT</version>
+</dependency>
+----
+
+.使用持久化和执行器
+[source%nowrap,gradle]
+----
+<dependency>
+  <groupId>com.github.peacetrue.task</groupId>
+  <artifactId>peacetrue-task-service-mybatis</artifactId>
+  <version>2.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+  <groupId>com.github.peacetrue.task</groupId>
+  <artifactId>peacetrue-task-executor-impl</artifactId>
+  <version>2.0-SNAPSHOT</version>
+</dependency>
+----
+
+.使用前端展示
+[source%nowrap,gradle]
+----
+<dependency>
+  <groupId>com.github.peacetrue.task</groupId>
+  <artifactId>peacetrue-task-controller</artifactId>
+  <version>2.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+  <groupId>com.github.peacetrue.task</groupId>
+  <artifactId>peacetrue-task-ui</artifactId>
+  <version>2.0-SNAPSHOT</version>
+</dependency>
+----
+
+
+
+
+

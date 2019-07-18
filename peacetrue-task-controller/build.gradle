@@ -1,0 +1,17 @@
+description '任务控制器'
+
+dependencies {
+
+    compile project(":peacetrue-task-service-api")
+    compile project(":peacetrue-task-executor-api")
+    compile 'org.slf4j:slf4j-api'
+    compile 'com.github.peacetrue:peacetrue-spring:1.0-SNAPSHOT'
+    compile "org.springframework:spring-webmvc"
+    compile 'org.springframework.data:spring-data-commons'
+    compile "org.springframework.boot:spring-boot-autoconfigure"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    testCompile 'org.springframework.boot:spring-boot-starter-web'
+    testCompile project(path: ':peacetrue-task-service-mybatis', configuration: 'testArtifacts')
+    testCompile project(path: ':peacetrue-task-executor-impl', configuration: 'testArtifacts')
+}
