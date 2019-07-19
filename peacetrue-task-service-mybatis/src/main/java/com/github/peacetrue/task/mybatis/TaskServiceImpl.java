@@ -46,6 +46,15 @@ public class TaskServiceImpl implements TaskService {
     public TaskVO add(TaskAddDTO dto) {
         logger.info("新增任务: {}", dto);
 
+        List<Task> tasks = taskMapper.selectByContent(dto.getBody(), dto.getInput());
+        logger.debug("取得相同内容和参数的任务[{}]个", tasks.size());
+        if (!tasks.isEmpty()) {
+            Task task = tasks.get(0);
+            TaskVO taskVO = BeanUtils.map(task, TaskVO.class);
+            taskVO.setDependentIds(getDependentTaskId(taskVO.getId()));
+            return taskVO;
+        }
+
         Task task = BeanUtils.map(dto, Task.class);
         task.setStateCode(Tense.TODO.getCode());
         task.setCreatorId(dto.getOperatorId());
@@ -69,6 +78,10 @@ public class TaskServiceImpl implements TaskService {
         TaskVO taskVO = BeanUtils.map(task, TaskVO.class);
         taskVO.setDependentIds(dto.getDependentIds());
         return taskVO;
+    }
+
+    private List<Object> getDependentTaskId(Object id) {
+        return taskDependencyMapper.selectByTaskId(id).stream().map(TaskDependency::getDependentTaskId).collect(Collectors.toList());
     }
 
     @Override

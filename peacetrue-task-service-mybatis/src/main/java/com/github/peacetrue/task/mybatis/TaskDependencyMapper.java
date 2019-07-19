@@ -97,21 +97,6 @@ public interface TaskDependencyMapper {
                 .from(taskDependency);
     }
 
-    @SuppressWarnings("unchecked")
-    default <T> List<TaskDependency> selectByTaskId(Collection<T> taskIds) {
-        return selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isIn(new ArrayList<>(taskIds))).build().execute();
-    }
-
-    @SuppressWarnings("unchecked")
-    default <T> List<TaskDependency> selectByTaskId(T taskId) {
-        return selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isEqualTo(taskId)).build().execute();
-    }
-
-    @SuppressWarnings("unchecked")
-    default <T> List<TaskDependency> selectByDependentTaskId(T dependentTaskId) {
-        return selectByExample().where((SqlColumn<T>) taskDependency.dependentTaskId, SqlBuilder.isEqualTo(dependentTaskId)).build().execute();
-    }
-
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
     default QueryExpressionDSL<MyBatis3SelectModelAdapter<List<TaskDependency>>> selectDistinctByExample() {
         return SelectDSL.selectDistinctWithMapper(this::selectMany, taskId, dependentTaskId)
@@ -130,5 +115,22 @@ public interface TaskDependencyMapper {
         return UpdateDSL.updateWithMapper(this::update, taskDependency)
                 .set(taskId).equalToWhenPresent(record::getTaskId)
                 .set(dependentTaskId).equalToWhenPresent(record::getDependentTaskId);
+    }
+
+    //append
+
+    @SuppressWarnings("unchecked")
+    default <T> List<TaskDependency> selectByTaskId(Collection<T> taskIds) {
+        return selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isIn(new ArrayList<>(taskIds))).build().execute();
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T> List<TaskDependency> selectByTaskId(T taskId) {
+        return selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isEqualTo(taskId)).build().execute();
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T> List<TaskDependency> selectByDependentTaskId(T dependentTaskId) {
+        return selectByExample().where((SqlColumn<T>) taskDependency.dependentTaskId, SqlBuilder.isEqualTo(dependentTaskId)).build().execute();
     }
 }

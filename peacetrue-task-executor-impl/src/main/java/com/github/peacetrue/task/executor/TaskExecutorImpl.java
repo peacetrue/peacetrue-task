@@ -86,8 +86,9 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
             return;
         }
         if (dependents.stream().anyMatch(item -> !item.getStateCode().equals(FinalState.SUCCESS.getCode()))) {
-            throw new TaskExecuteException(String.format("当前任务[%s]依赖的其他任务尚未成功完成", task));
+            throw new TaskExecuteException(String.format("当前任务[%s]依赖的其他任务尚未执行成功", task));
         }
+        logger.debug("当前任务[{}]依赖的其他任务都已执行成功", task);
     }
 
     protected CompletableFuture<Object> executeCurrent(Task task) {

@@ -15,8 +15,8 @@ public class TaskAddDTO<Id, OperatorId> extends OperatorCapableImpl<OperatorId> 
 
     private String groupId;
     private String name;
-    private String input;
     private String body;
+    private String input;
     private List<Id> dependentIds;
 
 }
