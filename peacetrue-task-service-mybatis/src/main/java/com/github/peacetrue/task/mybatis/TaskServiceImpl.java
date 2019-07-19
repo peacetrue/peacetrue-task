@@ -7,10 +7,7 @@ import com.github.peacetrue.flow.Tense;
 import com.github.peacetrue.mybatis.dynamic.MybatisDynamicUtils;
 import com.github.peacetrue.pagehelper.PageHelperUtils;
 import com.github.peacetrue.spring.util.BeanUtils;
-import com.github.peacetrue.task.executor.TaskExecutor;
-import com.github.peacetrue.task.executor.TaskFailedEvent;
-import com.github.peacetrue.task.executor.TaskStartedEvent;
-import com.github.peacetrue.task.executor.TaskSucceededEvent;
+import com.github.peacetrue.task.executor.*;
 import com.github.peacetrue.task.service.*;
 import com.github.peacetrue.util.EntityNotFoundException;
 import org.mybatis.dynamic.sql.SqlBuilder;
@@ -157,8 +154,14 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public void execute(TaskExecuteDTO dto) {
         logger.info("执行任务[{}]", dto);
-        if (taskExecutor == null) return;
+        if (taskExecutor == null) {
+            logger.warn("尚未配置任务执行器，无法执行任务");
+            return;
+        }
         TaskVO taskVO = getRequiredById(dto.getId());
+        if (taskVO.getStateCode().equals(Tense.DOING.getCode())) {
+            throw new TaskExecuteException("任务正在执行中，请勿重复执行");
+        }
         RealTimeTask impl = BeanUtils.map(taskVO, RealTimeTask.class);
         impl.setTaskService(this);
         impl.setOperatorId(dto.getOperatorId());
