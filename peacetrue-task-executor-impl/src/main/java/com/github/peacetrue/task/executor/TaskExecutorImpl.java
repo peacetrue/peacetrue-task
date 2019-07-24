@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * @author xiayx
@@ -42,7 +42,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     private TaskIOMapper taskIOMapper;
     @Autowired
     @Qualifier(ExecutorTaskAutoConfiguration.TASK_ID)
-    private Function<Task, String> taskId;
+    private BiFunction<Task, Integer, String> taskId;
     @Autowired
     private ExpressionParser expressionParser;
     private BeanResolver beanResolver;
@@ -125,7 +125,10 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         Set<Task> dependent = task.getDependent();
         if (CollectionUtils.isEmpty(dependent)) return Collections.emptyMap();
         Map<String, Object> variables = new HashMap<>();
-        dependent.forEach(item -> variables.put(taskId.apply(item), taskIOMapper.readObject(item, item.getOutput())));
+        int i = 0;
+        for (Task item : dependent) {
+            variables.put(taskId.apply(item, i++), taskIOMapper.readObject(item, item.getOutput()));
+        }
         return variables;
     }
 

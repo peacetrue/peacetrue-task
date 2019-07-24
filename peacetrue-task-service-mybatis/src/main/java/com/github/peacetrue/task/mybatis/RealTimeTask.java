@@ -7,6 +7,7 @@ import com.github.peacetrue.task.service.TaskVO;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ public class RealTimeTask extends TaskVO implements Task {
                 dto.setOperatorId(operatorId);
                 dto.setExecuted(executed);
                 return dto;
-            }).collect(Collectors.toSet());
+            }).collect(Collectors.toCollection(LinkedHashSet::new));
         }
         return dependent;
     }
@@ -53,7 +54,7 @@ public class RealTimeTask extends TaskVO implements Task {
                 dto.setOperatorId(operatorId);
                 dto.setExecuted(executed);
                 return dto;
-            }).collect(Collectors.toSet());
+            }).collect(Collectors.toCollection(LinkedHashSet::new));
         }
         return dependOn;
     }

@@ -13,7 +13,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * @author xiayx
@@ -55,8 +55,8 @@ public class ExecutorTaskAutoConfiguration {
 
     @Bean(name = TASK_ID)
     @ConditionalOnMissingBean(name = TASK_ID)
-    public Function<Task, String> taskId() {
-        return task -> "task_" + task.toString();
+    public BiFunction<Task, Integer, String> taskId() {
+        return (task, integer) -> "task_" + integer;
     }
 
 //    @Bean
