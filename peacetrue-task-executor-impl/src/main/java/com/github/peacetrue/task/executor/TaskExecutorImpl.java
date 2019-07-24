@@ -83,7 +83,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     }
 
     protected void checkState(Task task) {
-        if (task.getStateCode().equals(Tense.TODO.getCode())) {
+        if (task.getStateCode().equals(Tense.DOING.getCode())) {
             throw new TaskExecuteException("任务正在执行中，请勿重复执行");
         }
 
