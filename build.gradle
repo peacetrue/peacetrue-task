@@ -38,7 +38,7 @@ subprojects { project ->
     }
 
     group 'com.github.peacetrue.task'
-    version '2.1.2-SNAPSHOT'
+    version '2.2.0-SNAPSHOT'
     description '任务组件，可视化任务管理'
 
     apply plugin: 'java'

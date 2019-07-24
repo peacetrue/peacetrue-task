@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.peacetrue.associate.AssociatedSourceBuilder;
 import com.github.peacetrue.associate.AssociatedSourceBuilderImpl;
 import com.github.peacetrue.jackson.ObjectMapperWrapper;
+import com.github.peacetrue.task.executor.TaskDependencyService;
 import com.github.peacetrue.task.service.TaskService;
 import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
@@ -52,6 +53,11 @@ public class MybatisTaskAutoConfiguration {
     @ConditionalOnMissingBean(ObjectMapperWrapper.class)
     public ObjectMapperWrapper objectMapperWrapper(ObjectMapper objectMapper) {
         return new ObjectMapperWrapper(objectMapper);
+    }
+
+    @Bean
+    public TaskDependencyService taskDependencyService() {
+        return new TaskDependencyServiceImpl();
     }
 
 

@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.github.peacetrue.task.executor.ExecutorTaskAutoConfiguration
+  com.github.peacetrue.task.executor.TaskExecutorAutoConfiguration,\
+  com.github.peacetrue.task.executor.TaskExecutorAmqpAutoConfiguration

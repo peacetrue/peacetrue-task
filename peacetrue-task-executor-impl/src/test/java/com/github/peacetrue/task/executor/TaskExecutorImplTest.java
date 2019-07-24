@@ -9,16 +9,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
-import java.util.function.Function;
-
 /**
  * @author xiayx
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {
         JacksonAutoConfiguration.class,
-        ExecutorTaskAutoConfiguration.class,
+        TaskExecutorAutoConfiguration.class,
+        TaskExecutorAmqpAutoConfiguration.class,
         TaskExecutorImplTest.CustomConfiguration.class
 }, properties = {
         "logging.level.com.github.peacetrue=trace"
@@ -34,7 +32,6 @@ public class TaskExecutorImplTest {
 
     @Autowired
     private TaskIOMapper taskIOMapper;
-
     @Autowired
     private TaskExecutor taskExecutor;
 
@@ -54,6 +51,5 @@ public class TaskExecutorImplTest {
         task.addDependOn(new IdTaskImpl<>(2, "@solveQuestion.thinkPlan(#task_0,#root)", "1000"));
         taskExecutor.execute(task);
         Thread.sleep(5000L);
-
     }
 }

@@ -29,10 +29,10 @@ insert into task (id, group_id, name, input, body, state_code, output, exception
 values (1, '解决问题', '提出问题', null, '@solveQuestion.submitQuestion(1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
 
 insert into task (id, group_id, name, input, body, state_code, output, exception, duration, creator_id, created_time, modifier_id, modified_time)
-values (2, '解决问题', '思考方案', null, '@solveQuestion.thinkPlan(#task_1,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
+values (2, '解决问题', '思考方案', null, '@solveQuestion.thinkPlan(#task_0,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
 
 insert into task (id, group_id, name, input, body, state_code, output, exception, duration, creator_id, created_time, modifier_id, modified_time)
-values (3, '解决问题', '执行方案', null, '@solveQuestion.execute(#task_2,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
+values (3, '解决问题', '执行方案', null, '@solveQuestion.execute(#task_0,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
 
 insert into task_dependency (task_id, dependent_task_id)values (2, 1);
 insert into task_dependency (task_id, dependent_task_id)values (3, 2);

@@ -21,6 +21,11 @@ dependencies {
     compile 'com.github.peacetrue:peacetrue-spring:1.0-SNAPSHOT'
     compile 'org.springframework.boot:spring-boot-autoconfigure'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    compileOnly 'org.springframework.boot:spring-boot-starter-amqp'
+    compileOnly 'com.rabbitmq:amqp-client:3.6.3'
 
     testCompile project(path: ':peacetrue-task-service-mybatis', configuration: 'testArtifacts')
+    testCompile 'org.springframework.boot:spring-boot-starter-amqp'
+    testCompile 'com.rabbitmq:amqp-client:3.6.3'
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
 }

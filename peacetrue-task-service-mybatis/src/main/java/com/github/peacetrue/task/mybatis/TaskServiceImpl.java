@@ -175,8 +175,7 @@ public class TaskServiceImpl implements TaskService {
         if (taskVO.getStateCode().equals(Tense.DOING.getCode())) {
             throw new TaskExecuteException("任务正在执行中，请勿重复执行");
         }
-        RealTimeTask impl = BeanUtils.map(taskVO, RealTimeTask.class);
-        impl.setTaskService(this);
+        TaskImpl impl = BeanUtils.map(taskVO, TaskImpl.class);
         impl.setOperatorId(dto.getOperatorId());
         impl.setExecuted(new HashSet<>());
         taskExecutor.execute(impl);
@@ -184,7 +183,7 @@ public class TaskServiceImpl implements TaskService {
 
     @EventListener
     public void handleTaskStarted(TaskStartedEvent event) {
-        RealTimeTask source = (RealTimeTask) event.getSource();
+        TaskImpl source = (TaskImpl) event.getSource();
         TaskDoingDTO dto = new TaskDoingDTO();
         dto.setId(source.getId());
         dto.setOperatorId(source.getOperatorId());
@@ -194,7 +193,7 @@ public class TaskServiceImpl implements TaskService {
 
     @EventListener
     public void handleTaskSucceeded(TaskSucceededEvent event) {
-        RealTimeTask source = (RealTimeTask) event.getSource();
+        TaskImpl source = (TaskImpl) event.getSource();
         source.getExecuted().add(source);
         TaskSuccessDTO dto = new TaskSuccessDTO();
         dto.setId(source.getId());
@@ -207,7 +206,7 @@ public class TaskServiceImpl implements TaskService {
 
     @EventListener
     public void handleTaskFailed(TaskFailedEvent event) {
-        RealTimeTask source = (RealTimeTask) event.getSource();
+        TaskImpl source = (TaskImpl) event.getSource();
         source.getExecuted().add(source);
         TaskFailureDTO dto = new TaskFailureDTO();
         dto.setId(source.getId());

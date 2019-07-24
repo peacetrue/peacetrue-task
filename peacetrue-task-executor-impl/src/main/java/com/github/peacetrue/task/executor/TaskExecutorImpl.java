@@ -20,8 +20,8 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
@@ -33,21 +33,24 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     @Autowired
-    @Qualifier(ExecutorTaskAutoConfiguration.EXECUTOR_SERVICE_TASK)
+    @Qualifier(TaskExecutorAutoConfiguration.EXECUTOR_SERVICE_TASK)
     private ExecutorService taskExecutorService;
     @Autowired
-    @Qualifier(ExecutorTaskAutoConfiguration.EXECUTOR_SERVICE_TRIGGER)
+    @Qualifier(TaskExecutorAutoConfiguration.EXECUTOR_SERVICE_TRIGGER)
     private ExecutorService triggerExecutorService;
     @Autowired
     private TaskIOMapper taskIOMapper;
     @Autowired
-    @Qualifier(ExecutorTaskAutoConfiguration.TASK_ID)
+    @Qualifier(TaskExecutorAutoConfiguration.TASK_ID)
     private BiFunction<Task, Integer, String> taskId;
+    @Autowired(required = false)
+    private TaskDependencyService taskDependencyService;
     @Autowired
     private ExpressionParser expressionParser;
     private BeanResolver beanResolver;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+    private Map<Task, List<Task>> dependentCache = new HashMap<>();
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -60,6 +63,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         this.checkDependent(task);
         CompletableFuture<Object> future = this.executeCurrent(task);
         triggerExecutorService.execute(() -> this.triggerStarted(task));
+        future = future.whenComplete((output, throwable) -> dependentCache.remove(task));
         future = this.updateAfterCompleted(future, task);
         future.whenCompleteAsync((output, throwable) -> {
             try {
@@ -79,7 +83,12 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
 
     protected void checkDependent(Task task) {
         logger.info("检查当前任务[{}]依赖的其他任务是否都已完成", task);
-        Set<Task> dependents = task.getDependent();
+        if (taskDependencyService == null) {
+            logger.warn("尚未配置 TaskDependencyService，跳过依赖检查");
+            return;
+        }
+        List<Task> dependents = taskDependencyService.getDependent(task);
+        dependentCache.put(task, dependents);
         logger.debug("取得当前任务[{}]依赖的其他任务[{}]", task, dependents);
         if (CollectionUtils.isEmpty(dependents)) {
             logger.debug("当前任务[{}]不依赖其他任务", task);
@@ -122,7 +131,8 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     }
 
     protected Map<String, Object> getDependentVariables(Task task) {
-        Set<Task> dependent = task.getDependent();
+        if (taskDependencyService == null) return Collections.emptyMap();
+        List<Task> dependent = dependentCache.get(task);
         if (CollectionUtils.isEmpty(dependent)) return Collections.emptyMap();
         Map<String, Object> variables = new HashMap<>();
         int i = 0;
@@ -149,7 +159,12 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
 
     protected void executeDependOn(Task task) {
         logger.info("执行依赖于当前任务[{}]的其他任务", task);
-        Set<Task> dependOn = task.getDependOn();
+        if (taskDependencyService == null) {
+            logger.warn("尚未配置 TaskDependencyService，跳过执行依赖的其他任务");
+            return;
+        }
+
+        List<Task> dependOn = taskDependencyService.getDependOn(task);
         logger.debug("取得依赖于当前任务[{}]的其他任务[{}]", task, dependOn);
         if (CollectionUtils.isEmpty(dependOn)) {
             logger.debug("不存在依赖于当前任务[{}]的其他任务", task);

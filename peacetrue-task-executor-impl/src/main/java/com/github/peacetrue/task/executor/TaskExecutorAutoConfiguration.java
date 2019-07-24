@@ -20,7 +20,7 @@ import java.util.function.BiFunction;
  */
 @Configuration
 @AutoConfigureAfter(JacksonAutoConfiguration.class)
-public class ExecutorTaskAutoConfiguration {
+public class TaskExecutorAutoConfiguration {
 
     public static final String EXECUTOR_SERVICE_TASK = "peacetureTaskExecutorService";
     public static final String EXECUTOR_SERVICE_TRIGGER = "peacetureTriggerExecutorService";
