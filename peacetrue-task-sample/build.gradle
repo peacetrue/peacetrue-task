@@ -11,5 +11,7 @@ dependencies {
     compile 'com.github.peacetrue:peacetrue-result-exception-support:1.0-SNAPSHOT'
     compile 'org.springframework.boot:spring-boot-starter-web'
     compile project(path: ':peacetrue-task-service-mybatis', configuration: 'testArtifacts')
+    compile 'org.springframework.boot:spring-boot-starter-amqp'
+    compile 'com.rabbitmq:amqp-client:3.6.3'
 
 }

@@ -60,6 +60,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     public void execute(Task task) {
         logger.info("执行任务[{}]", task);
 
+        this.checkState(task);
         this.checkDependent(task);
         CompletableFuture<Object> future = this.executeCurrent(task);
         triggerExecutorService.execute(() -> this.triggerStarted(task));
@@ -79,6 +80,16 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
                 logger.warn("执行依赖于当前任务[{}]的其他任务发生异常", task, e);
             }
         }, taskExecutorService);
+    }
+
+    protected void checkState(Task task) {
+        if (task.getStateCode().equals(Tense.TODO.getCode())) {
+            throw new TaskExecuteException("任务正在执行中，请勿重复执行");
+        }
+
+        if (task.getStateCode().equals(Tense.SUCCESS.getCode())) {
+            throw new TaskExecuteException("任务已经执行成功了，请勿重复执行");
+        }
     }
 
     protected void checkDependent(Task task) {

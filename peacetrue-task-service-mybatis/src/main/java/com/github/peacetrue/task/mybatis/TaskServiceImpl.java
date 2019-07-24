@@ -172,9 +172,6 @@ public class TaskServiceImpl implements TaskService {
             return;
         }
         TaskVO taskVO = getRequiredById(dto.getId());
-        if (taskVO.getStateCode().equals(Tense.DOING.getCode())) {
-            throw new TaskExecuteException("任务正在执行中，请勿重复执行");
-        }
         TaskImpl impl = BeanUtils.map(taskVO, TaskImpl.class);
         impl.setOperatorId(dto.getOperatorId());
         impl.setExecuted(new HashSet<>());
