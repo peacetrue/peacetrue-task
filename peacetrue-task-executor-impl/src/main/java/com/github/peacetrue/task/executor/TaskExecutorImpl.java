@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 
 /**
@@ -57,15 +58,22 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         this.beanResolver = new BeanFactoryResolver(beanFactory);
     }
 
-    public void execute(Task task) {
+    public Future execute(Task task) {
         logger.info("执行任务[{}]", task);
 
         this.checkState(task);
         this.checkDependent(task);
-        CompletableFuture<Object> future = this.executeCurrent(task);
-        triggerExecutorService.execute(() -> this.triggerStarted(task));
-        future = future.whenComplete((output, throwable) -> dependentCache.remove(task));
-        future = this.updateAfterCompleted(future, task);
+        long started = System.currentTimeMillis();
+        CompletableFuture<Object> future = CompletableFuture.supplyAsync(() -> this.executeCurrent(task), taskExecutorService);
+        triggerExecutorService.execute(() -> {
+            try {
+                this.triggerStarted(task);
+            } catch (Exception e) {
+                logger.warn("触发任务[{}]已开始发生异常", task, e);
+            }
+        });
+        future.whenComplete((output, throwable) -> dependentCache.remove(task));
+        future = future.whenComplete((output, throwable) -> this.syncTask(task, started, output, throwable));
         future.whenCompleteAsync((output, throwable) -> {
             try {
                 this.triggerCompleted(task, output, throwable);
@@ -80,14 +88,16 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
                 logger.warn("执行依赖于当前任务[{}]的其他任务发生异常", task, e);
             }
         }, taskExecutorService);
+        return future;
     }
 
     protected void checkState(Task task) {
-        if (task.getStateCode().equals(Tense.DOING.getCode())) {
+        logger.info("检查当前任务[{}]的状态是否正确", task);
+        if (Tense.DOING.getCode().equals(task.getStateCode())) {
             throw new TaskExecuteException("任务正在执行中，请勿重复执行");
         }
 
-        if (task.getStateCode().equals(Tense.SUCCESS.getCode())) {
+        if (Tense.SUCCESS.getCode().equals(task.getStateCode())) {
             throw new TaskExecuteException("任务已经执行成功了，请勿重复执行");
         }
     }
@@ -111,34 +121,29 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         logger.debug("当前任务[{}]依赖的其他任务都已执行成功", task);
     }
 
-    protected CompletableFuture<Object> executeCurrent(Task task) {
+    protected Object executeCurrent(Task task) {
         logger.info("任务线程池异步执行任务[{}]", task);
-        return CompletableFuture.supplyAsync(() -> {
-            Expression expression = expressionParser.parseExpression(task.getBody());
-            Object rootObject = taskIOMapper.readObject(task, task.getInput());
-            logger.debug("取得任务[{}]的输入参数[{}]作为Root", task, rootObject);
-            StandardEvaluationContext evaluationContext = new StandardEvaluationContext(rootObject);
-            evaluationContext.setBeanResolver(beanResolver);
-            Map<String, Object> variables = getDependentVariables(task);
-            logger.debug("取得任务[{}]的依赖参数[{}]作为变量", task, variables);
-            evaluationContext.setVariables(variables);
-            return expression.getValue(evaluationContext);
-        }, taskExecutorService);
+        Expression expression = expressionParser.parseExpression(task.getBody());
+        Object rootObject = taskIOMapper.readObject(task, task.getInput());
+        logger.debug("取得任务[{}]的输入参数[{}]作为Root", task, rootObject);
+        StandardEvaluationContext evaluationContext = new StandardEvaluationContext(rootObject);
+        evaluationContext.setBeanResolver(beanResolver);
+        Map<String, Object> variables = getDependentVariables(task);
+        logger.debug("取得任务[{}]的依赖参数[{}]作为变量", task, variables);
+        evaluationContext.setVariables(variables);
+        return expression.getValue(evaluationContext);
     }
 
-    protected CompletableFuture<Object> updateAfterCompleted(CompletableFuture<Object> future, Task task) {
-        long started = System.currentTimeMillis();
-        return future.whenComplete((output, throwable) -> {
-            logger.info("任务[{}]执行完成，同步任务执行结果[{}]", task, output, throwable);
-            task.setDuration(System.currentTimeMillis() - started);
-            if (throwable == null) {
-                task.setStateCode(Tense.SUCCESS.getCode());
-                task.setOutput(taskIOMapper.writeObject(task, output));
-            } else {
-                task.setStateCode(Tense.FAILURE.getCode());
-                task.setOutput(throwable.getMessage());
-            }
-        });
+    protected void syncTask(Task task, long started, Object output, Throwable throwable) {
+        logger.info("任务[{}]执行完成，同步任务执行结果[{}]", task, output, throwable);
+        task.setDuration(System.currentTimeMillis() - started);
+        if (throwable == null) {
+            task.setStateCode(Tense.SUCCESS.getCode());
+            task.setOutput(taskIOMapper.writeObject(task, output));
+        } else {
+            task.setStateCode(Tense.FAILURE.getCode());
+            task.setOutput(throwable.getMessage());
+        }
     }
 
     protected Map<String, Object> getDependentVariables(Task task) {
@@ -160,12 +165,15 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
 
     protected void triggerCompleted(Task task, @Nullable Object output, @Nullable Throwable throwable) {
         if (throwable == null) {
-            logger.debug("任务[{}]执行成功，触发成功完成", task);
+            logger.debug("任务[{}]执行成功，触发成功事件", task);
             eventPublisher.publishEvent(new TaskSucceededEvent(task, output));
         } else {
-            logger.warn("任务[{}]执行异常，触发失败完成", task);
+            logger.warn("任务[{}]执行异常，触发失败事件", task);
             eventPublisher.publishEvent(new TaskFailedEvent(task, throwable));
         }
+
+        logger.warn("任务[{}]执行完成，触发完成事件", task);
+        eventPublisher.publishEvent(new TaskCompletedEvent(task, output, throwable));
     }
 
     protected void executeDependOn(Task task) {
