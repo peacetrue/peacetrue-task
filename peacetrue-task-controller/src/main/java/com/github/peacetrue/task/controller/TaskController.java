@@ -1,7 +1,6 @@
 package com.github.peacetrue.task.controller;
 
 import com.github.peacetrue.spring.util.BeanUtils;
-import com.github.peacetrue.task.executor.TaskExecutor;
 import com.github.peacetrue.task.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +49,7 @@ public class TaskController {
 
     @ResponseBody
     @PostMapping(value = "${peacetrue.task.execute-url}")
-    public void execute(TaskExecuteDTO dto) {
+    public void execute(TaskIdExecuteDTO dto) {
         logger.info("执行任务[{}]", dto);
         taskService.execute(dto);
     }

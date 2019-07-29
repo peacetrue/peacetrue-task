@@ -27,7 +27,6 @@ dependencies {
     compile 'com.github.peacetrue:peacetrue-mybatis:1.0-SNAPSHOT'
     compile 'com.github.peacetrue:peacetrue-associate:1.0-SNAPSHOT'
     compile 'org.springframework.data:spring-data-commons'
-    compile 'com.github.peacetrue:peacetrue-jackson:1.2.1-SNAPSHOT'
     compile "org.springframework.boot:spring-boot-autoconfigure"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
@@ -37,4 +36,6 @@ dependencies {
     testCompile 'org.springframework.data:spring-data-commons'
     testCompile 'com.h2database:h2'
     testCompile 'ch.qos.logback:logback-classic'
+    testCompile project(":peacetrue-task-executor-impl")
+
 }

@@ -45,9 +45,6 @@ public interface TaskService {
     /** 获取依赖于当前任务的其他任务 */
     List<TaskVO> getDependOn(Object id);
 
-    /** 执行任务 */
-    void execute(TaskExecuteDTO dto);
-
     /** 更新任务状态为进行中 */
     void updateStateDoing(TaskDoingDTO dto);
 
@@ -56,5 +53,11 @@ public interface TaskService {
 
     /** 更新任务状态为执行失败 */
     void updateStateFailure(TaskFailureDTO dto);
+
+    /** 执行任务 */
+    void execute(TaskIdExecuteDTO dto);
+
+    /** 执行任务 */
+    void execute(TaskExecuteDTO dto);
 
 }

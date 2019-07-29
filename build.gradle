@@ -30,7 +30,7 @@ subprojects { project ->
             dependency 'org.mybatis:mybatis:3.4.6'
             dependency 'org.mybatis:mybatis-spring:1.3.0'
             dependency 'org.mybatis.spring.boot:mybatis-spring-boot-starter:1.3.2'
-            dependency 'org.mybatis.dynamic-sql:mybatis-dynamic-sql:1.1.0'
+            dependency 'org.mybatis.dynamic-sql:mybatis-dynamic-sql:1.1.2'
             dependency 'com.github.pagehelper:pagehelper:5.1.2'
             dependency 'com.github.pagehelper:pagehelper-spring-boot-starter:1.2.3'
             dependency 'org.aspectj:aspectjweaver:1.9.0'
@@ -39,7 +39,7 @@ subprojects { project ->
 
     group 'com.github.peacetrue.task'
     version '2.2.0-SNAPSHOT'
-    description '任务组件，可视化任务管理'
+    description '任务组件'
 
     apply plugin: 'java'
     sourceCompatibility = 1.8

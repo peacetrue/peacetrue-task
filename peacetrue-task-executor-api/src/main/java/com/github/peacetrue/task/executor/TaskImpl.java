@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author xiayx
@@ -20,8 +20,8 @@ public class TaskImpl implements Task {
     private String stateCode = Tense.TODO.getCode();
     private String output;
     private Long duration;
-    private Set<Task> dependent;
-    private Set<Task> dependOn;
+    private List<Task> dependent;
+    private List<Task> dependOn;
 
     public TaskImpl() {
     }
@@ -47,13 +47,13 @@ public class TaskImpl implements Task {
         task.getDependent().add(this);
     }
 
-    public Set<Task> getDependent() {
-        if (dependent == null) dependent = new HashSet<>();
+    public List<Task> getDependent() {
+        if (dependent == null) dependent = new LinkedList<>();
         return dependent;
     }
 
-    public Set<Task> getDependOn() {
-        if (dependOn == null) dependOn = new HashSet<>();
+    public List<Task> getDependOn() {
+        if (dependOn == null) dependOn = new LinkedList<>();
         return dependOn;
     }
 

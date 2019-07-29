@@ -1,6 +1,8 @@
 package com.github.peacetrue.task.mybatis;
 
 import com.github.pagehelper.autoconfigure.PageHelperAutoConfiguration;
+import com.github.peacetrue.spring.util.BeanUtils;
+import com.github.peacetrue.task.executor.TaskExecutorAutoConfiguration;
 import com.github.peacetrue.task.service.*;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,7 +29,9 @@ import java.util.List;
         MybatisAutoConfiguration.class,
         MybatisTaskAutoConfiguration.class,
         PageHelperAutoConfiguration.class,
-})
+        TaskExecutorAutoConfiguration.class,
+        SolveQuestion.class
+}, properties = "logging.level.com.github.peacetrue=debug")
 @ActiveProfiles("datasource")
 public class TaskServiceImplTest {
 
@@ -77,6 +81,14 @@ public class TaskServiceImplTest {
     @Test
     public void updateStateDoing() throws Exception {
         taskService.updateStateDoing(new TaskDoingDTO<>(1L, null));
+    }
+
+    @Test
+    public void execute() throws Exception {
+        TaskVO byId = taskService.getById(1L);
+        TaskExecuteDTO executeDTO = BeanUtils.map(byId, TaskExecuteDTO.class);
+        taskService.execute(executeDTO);
+        Thread.sleep(1000L * 5);
     }
 
 }

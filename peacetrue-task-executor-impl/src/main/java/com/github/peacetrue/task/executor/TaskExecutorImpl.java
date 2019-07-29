@@ -44,14 +44,11 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     @Autowired
     @Qualifier(TaskExecutorAutoConfiguration.TASK_ID)
     private BiFunction<Task, Integer, String> taskId;
-    @Autowired(required = false)
-    private TaskDependencyService taskDependencyService;
     @Autowired
     private ExpressionParser expressionParser;
     private BeanResolver beanResolver;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
-    private Map<Task, List<Task>> dependentCache = new HashMap<>();
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -72,8 +69,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
                 logger.warn("触发任务[{}]已开始发生异常", task, e);
             }
         });
-        future.whenComplete((output, throwable) -> dependentCache.remove(task));
-        future = future.whenComplete((output, throwable) -> this.syncTask(task, started, output, throwable));
+        future = future.whenComplete((output, throwable) -> this.completeTask(task, started, output, throwable));
         future.whenCompleteAsync((output, throwable) -> {
             try {
                 this.triggerCompleted(task, output, throwable);
@@ -100,16 +96,12 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         if (Tense.SUCCESS.getCode().equals(task.getStateCode())) {
             throw new TaskExecuteException("任务已经执行成功了，请勿重复执行");
         }
+        logger.debug("当前任务[{}]的状态是正确的", task);
     }
 
     protected void checkDependent(Task task) {
         logger.info("检查当前任务[{}]依赖的其他任务是否都已完成", task);
-        if (taskDependencyService == null) {
-            logger.warn("尚未配置 TaskDependencyService，跳过依赖检查");
-            return;
-        }
-        List<Task> dependents = taskDependencyService.getDependent(task);
-        dependentCache.put(task, dependents);
+        List<Task> dependents = task.getDependent();
         logger.debug("取得当前任务[{}]依赖的其他任务[{}]", task, dependents);
         if (CollectionUtils.isEmpty(dependents)) {
             logger.debug("当前任务[{}]不依赖其他任务", task);
@@ -131,24 +123,12 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         Map<String, Object> variables = getDependentVariables(task);
         logger.debug("取得任务[{}]的依赖参数[{}]作为变量", task, variables);
         evaluationContext.setVariables(variables);
+        this.doingTask(task);
         return expression.getValue(evaluationContext);
     }
 
-    protected void syncTask(Task task, long started, Object output, Throwable throwable) {
-        logger.info("任务[{}]执行完成，同步任务执行结果[{}]", task, output, throwable);
-        task.setDuration(System.currentTimeMillis() - started);
-        if (throwable == null) {
-            task.setStateCode(Tense.SUCCESS.getCode());
-            task.setOutput(taskIOMapper.writeObject(task, output));
-        } else {
-            task.setStateCode(Tense.FAILURE.getCode());
-            task.setOutput(throwable.getMessage());
-        }
-    }
-
     protected Map<String, Object> getDependentVariables(Task task) {
-        if (taskDependencyService == null) return Collections.emptyMap();
-        List<Task> dependent = dependentCache.get(task);
+        List<Task> dependent = task.getDependent();
         if (CollectionUtils.isEmpty(dependent)) return Collections.emptyMap();
         Map<String, Object> variables = new HashMap<>();
         int i = 0;
@@ -158,9 +138,26 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         return variables;
     }
 
+    protected void doingTask(Task task) {
+        logger.debug("更新任务[{}]为进行中", task);
+        task.setStateCode(Tense.DOING.getCode());
+    }
+
     protected void triggerStarted(Task task) {
-        logger.debug("任务[{}]已开始", task);
+        logger.debug("触发任务[{}]已开始", task);
         eventPublisher.publishEvent(new TaskStartedEvent(task));
+    }
+
+    protected void completeTask(Task task, long started, Object output, Throwable throwable) {
+        logger.info("任务[{}]执行完成，同步任务执行结果[{}]", task, output, throwable);
+        task.setDuration(System.currentTimeMillis() - started);
+        if (throwable == null) {
+            task.setStateCode(Tense.SUCCESS.getCode());
+            task.setOutput(taskIOMapper.writeObject(task, output));
+        } else {
+            task.setStateCode(Tense.FAILURE.getCode());
+            task.setOutput(throwable.getMessage());
+        }
     }
 
     protected void triggerCompleted(Task task, @Nullable Object output, @Nullable Throwable throwable) {
@@ -178,12 +175,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
 
     protected void executeDependOn(Task task) {
         logger.info("执行依赖于当前任务[{}]的其他任务", task);
-        if (taskDependencyService == null) {
-            logger.warn("尚未配置 TaskDependencyService，跳过执行依赖的其他任务");
-            return;
-        }
-
-        List<Task> dependOn = taskDependencyService.getDependOn(task);
+        List<Task> dependOn = task.getDependOn();
         logger.debug("取得依赖于当前任务[{}]的其他任务[{}]", task, dependOn);
         if (CollectionUtils.isEmpty(dependOn)) {
             logger.debug("不存在依赖于当前任务[{}]的其他任务", task);

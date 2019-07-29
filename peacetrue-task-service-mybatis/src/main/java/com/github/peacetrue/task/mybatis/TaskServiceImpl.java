@@ -3,11 +3,15 @@ package com.github.peacetrue.task.mybatis;
 import com.github.pagehelper.PageHelper;
 import com.github.peacetrue.associate.AssociateUtils;
 import com.github.peacetrue.associate.AssociatedSourceBuilder;
+import com.github.peacetrue.core.OperatorCapable;
 import com.github.peacetrue.flow.Tense;
 import com.github.peacetrue.mybatis.dynamic.MybatisDynamicUtils;
 import com.github.peacetrue.pagehelper.PageHelperUtils;
 import com.github.peacetrue.spring.util.BeanUtils;
-import com.github.peacetrue.task.executor.*;
+import com.github.peacetrue.task.executor.TaskExecutor;
+import com.github.peacetrue.task.executor.TaskFailedEvent;
+import com.github.peacetrue.task.executor.TaskStartedEvent;
+import com.github.peacetrue.task.executor.TaskSucceededEvent;
 import com.github.peacetrue.task.service.*;
 import com.github.peacetrue.util.EntityNotFoundException;
 import org.mybatis.dynamic.sql.SqlBuilder;
@@ -41,6 +45,8 @@ public class TaskServiceImpl implements TaskService {
     private TaskDependencyMapper taskDependencyMapper;
     @Autowired
     private AssociatedSourceBuilder associatedSourceBuilder;
+    @Autowired
+    private TaskExecutor taskExecutor;
 
     @Transactional
     public TaskVO add(TaskAddDTO dto) {
@@ -80,7 +86,7 @@ public class TaskServiceImpl implements TaskService {
         return taskVO;
     }
 
-    private List<Object> getDependentTaskId(Object id) {
+    private <T> List<T> getDependentTaskId(T id) {
         return taskDependencyMapper.selectByTaskId(id).stream().map(TaskDependency::getDependentTaskId).collect(Collectors.toList());
     }
 
@@ -108,7 +114,7 @@ public class TaskServiceImpl implements TaskService {
         return new PageImpl<>(vos, pageable, PageHelperUtils.getTotal(entities));
     }
 
-    private void setDependentIds(List<TaskVO> vos) {
+    private void setDependentIds(List<?> vos) {
         AssociateUtils.setCollectionAssociate(vos, "dependentIds",
                 associatedSourceBuilder.buildCollectionAssociatedSource(
                         taskDependencyMapper::selectByTaskId,
@@ -117,15 +123,9 @@ public class TaskServiceImpl implements TaskService {
                 "id");
     }
 
-    private Optional<TaskVO> getTask(Object id) {
-        logger.info("获取任务[{}]的详情", id);
-        return Optional.ofNullable(taskMapper.selectByPrimaryKey(id))
-                .map(task -> BeanUtils.map(task, TaskVO.class));
-    }
-
     @Override
     public TaskVO get(TaskGetDTO dto) {
-        return getTask(dto.getId()).orElse(null);
+        return getTask(dto.getId()).map(task -> BeanUtils.map(task, TaskVO.class)).orElse(null);
     }
 
     @Override
@@ -134,7 +134,17 @@ public class TaskServiceImpl implements TaskService {
     }
 
     public TaskVO getRequiredById(Object id) {
-        return getTask(id).orElseThrow(() -> new EntityNotFoundException(TaskVO.class, "id", id));
+        return BeanUtils.map(getRequiredTask(id), TaskVO.class);
+    }
+
+    private Optional<Task> getTask(Object id) {
+        logger.info("获取任务[{}]的详情", id);
+        return Optional.ofNullable(taskMapper.selectByPrimaryKey(id));
+    }
+
+    private Task getRequiredTask(Object id) {
+        logger.info("获取任务[{}]的详情", id);
+        return Optional.ofNullable(taskMapper.selectByPrimaryKey(id)).orElseThrow(() -> new EntityNotFoundException(TaskVO.class, "id", id));
     }
 
     @Override
@@ -146,7 +156,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<TaskVO> getDependent(Object id) {
         logger.info("获取当前任务[{}]依赖的其他任务", id);
-        List<TaskDependency> dependencies = taskDependencyMapper.selectByTaskId(id);
+        List<TaskDependency<Object>> dependencies = taskDependencyMapper.selectByTaskId(id);
         logger.info("取得当前任务[{}]依赖的其他任务[{}]", id, dependencies);
         if (dependencies.isEmpty()) return Collections.emptyList();
         return getById(dependencies.stream().map(TaskDependency::getDependentTaskId).collect(Collectors.toList()));
@@ -155,80 +165,23 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<TaskVO> getDependOn(Object id) {
         logger.info("获取依赖于当前任务[{}]的其他任务", id);
-        List<TaskDependency> dependencies = taskDependencyMapper.selectByDependentTaskId(id);
+        List<TaskDependency<Object>> dependencies = taskDependencyMapper.selectByDependentTaskId(id);
         if (dependencies.isEmpty()) return Collections.emptyList();
         logger.info("取得依赖于当前任务[{}]的其他任务", dependencies);
         return getById(dependencies.stream().map(TaskDependency::getTaskId).collect(Collectors.toList()));
     }
 
-    @Autowired(required = false)
-    private TaskExecutor taskExecutor;
-
-    @Override
-    public void execute(TaskExecuteDTO dto) {
-        logger.info("执行任务[{}]", dto);
-        if (taskExecutor == null) {
-            logger.warn("尚未配置任务执行器，无法执行任务");
-            return;
-        }
-        TaskVO taskVO = getRequiredById(dto.getId());
-        TaskImpl impl = BeanUtils.map(taskVO, TaskImpl.class);
-        impl.setOperatorId(dto.getOperatorId());
-        impl.setExecuted(new HashSet<>());
-        taskExecutor.execute(impl);
-    }
-
-    @EventListener
-    public void handleTaskStarted(TaskStartedEvent event) {
-        TaskImpl source = (TaskImpl) event.getSource();
-        TaskDoingDTO dto = new TaskDoingDTO();
-        dto.setId(source.getId());
-        dto.setOperatorId(source.getOperatorId());
-        dto.setRemark("执行任务");
-        this.updateStateDoing(dto, source);
-    }
-
-    @EventListener
-    public void handleTaskSucceeded(TaskSucceededEvent event) {
-        TaskImpl source = (TaskImpl) event.getSource();
-        source.getExecuted().add(source);
-        TaskSuccessDTO dto = new TaskSuccessDTO();
-        dto.setId(source.getId());
-        dto.setOperatorId(source.getOperatorId());
-        dto.setOutput(source.getOutput());
-        dto.setDuration(source.getDuration());
-        dto.setRemark("执行任务");
-        this.updateStateSuccess(dto, source);
-    }
-
-    @EventListener
-    public void handleTaskFailed(TaskFailedEvent event) {
-        TaskImpl source = (TaskImpl) event.getSource();
-        source.getExecuted().add(source);
-        TaskFailureDTO dto = new TaskFailureDTO();
-        dto.setId(source.getId());
-        dto.setDuration(source.getDuration());
-        dto.setOperatorId(source.getOperatorId());
-        dto.setException(event.getThrowable().getMessage());
-        dto.setRemark("执行任务");
-        this.updateStateFailure(dto, source);
-    }
-
     @Override
     @Transactional
     public void updateStateDoing(TaskDoingDTO dto) {
-        TaskVO task = this.getRequiredById(dto.getId());
-        updateStateDoing(dto, task);
-    }
-
-    private void updateStateDoing(TaskDoingDTO dto, TaskVO task) {
         logger.info("更新任务[{}]的状态为[进行中]", dto.getId());
         Task update = new Task();
-        update.setId(task.getId());
+        update.setId(dto.getId());
         update.setStateCode(Tense.DOING.getCode());
         update.setModifierId(dto.getOperatorId());
         update.setModifiedTime(new Date());
-        taskMapper.updateByPrimaryKeySelective(update);
+        int count = taskMapper.updateByPrimaryKeySelective(update);
+        logger.debug("共影响[{}]条记录", count);
     }
 
     @Override
@@ -270,4 +223,69 @@ public class TaskServiceImpl implements TaskService {
         update.setModifiedTime(new Date());
         taskMapper.updateByPrimaryKeySelective(update);
     }
+
+    @Override
+    public void execute(TaskIdExecuteDTO dto) {
+        logger.info("执行任务[{}]", dto);
+
+        List<Task> tasks = this.taskMapper.selectGroupById(dto.getId());
+        logger.debug("取得与任务[{}]同组的所有任务(共[{}]个)", dto, tasks.size());
+        if (tasks.isEmpty()) return;
+
+        List<TaskExecuteDTO> dtos = BeanUtils.replaceAsList(tasks, TaskExecuteDTO.class);
+        dtos.forEach(dto1 -> {
+            dto1.setOperatorId(dto.getOperatorId());
+            dto1.setOperatorName(dto.getOperatorName());
+        });
+        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
+        this.setDependency(dtoMap, dto);
+
+        this.taskExecutor.execute(dtoMap.get(dto.getId()));
+    }
+
+    private void setDependency(Map<Object, TaskExecuteDTO> dtoMap, OperatorCapable operatorCapable) {
+        logger.info("设置任务[{}]的依赖关系", dtoMap.values());
+
+        List<TaskDependency<Object>> taskDependencies = this.taskDependencyMapper.selectByTaskId(dtoMap.keySet());
+        if (taskDependencies.isEmpty()) return;
+
+        Map<Object, List<Object>> taskDependencyMap = taskDependencies.stream().collect(Collectors.groupingBy(
+                TaskDependency::getTaskId,
+                Collectors.mapping(TaskDependency::getDependentTaskId, Collectors.toList())));
+        dtoMap.values().forEach(dto -> {
+            Optional.ofNullable(taskDependencyMap.get(dto.getId()))
+                    .ifPresent(ids -> ids.forEach(id -> dto.addDependent(dtoMap.get(id))));
+        });
+    }
+
+    @Override
+    public void execute(TaskExecuteDTO dto) {
+        logger.info("执行任务[{}]", dto);
+        taskExecutor.execute(dto);
+    }
+
+    @EventListener
+    public void handleTaskStarted(TaskStartedEvent event) {
+        if (!(event.getSource() instanceof TaskExecuteDTO)) return;
+        TaskDoingDTO dto = BeanUtils.map(event.getSource(), TaskDoingDTO.class);
+        dto.setRemark("任务开始");
+        this.updateStateDoing(dto);
+    }
+
+    @EventListener
+    public void handleTaskSucceeded(TaskSucceededEvent event) {
+        if (!(event.getSource() instanceof TaskExecuteDTO)) return;
+        TaskSuccessDTO dto = BeanUtils.map(event.getSource(), TaskSuccessDTO.class);
+        dto.setRemark("执行任务");
+        this.updateStateSuccess(dto);
+    }
+
+    @EventListener
+    public void handleTaskFailed(TaskFailedEvent event) {
+        if (!(event.getSource() instanceof TaskExecuteDTO)) return;
+        TaskFailureDTO dto = BeanUtils.map(event.getSource(), TaskFailureDTO.class);
+        dto.setRemark("执行任务");
+        this.updateStateFailure(dto);
+    }
+
 }

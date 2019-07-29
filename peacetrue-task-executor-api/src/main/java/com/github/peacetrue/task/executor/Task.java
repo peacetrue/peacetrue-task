@@ -1,6 +1,7 @@
 package com.github.peacetrue.task.executor;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * @author xiayx
@@ -33,6 +34,12 @@ public interface Task extends Serializable {
 
     /** 获取任务输出结果 */
     String getOutput();
+
+    /** 获取当前任务依赖的其他任务 */
+    List<Task> getDependent();
+
+    /** 获取依赖于当前任务的其他任务 */
+    List<Task> getDependOn();
 
 }
 

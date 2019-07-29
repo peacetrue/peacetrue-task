@@ -235,6 +235,17 @@ public interface TaskMapper {
         return selectByExample().where((SqlColumn<T>) task.id, SqlBuilder.isIn(new ArrayList<>(ids))).build().execute();
     }
 
+    TaskDynamicSqlSupport.Task TASK_TWO = new TaskDynamicSqlSupport.Task();
+
+    @SuppressWarnings("unchecked")
+    default <T> List<Task> selectGroupById(T id) {
+        return selectByExample()
+                .join(TASK_TWO, "task2").on(TASK_TWO.groupId, SqlBuilder.equalTo(task.groupId))
+                .where((SqlColumn<T>) TASK_TWO.id, SqlBuilder.isEqualTo(id))
+                .orderBy(createdTime)
+                .build().execute();
+    }
+
     default List<Task> selectByContent(String body_, @Nullable String input_) {
         return selectByExample()
                 .where(body, SqlBuilder.isEqualTo(body_))

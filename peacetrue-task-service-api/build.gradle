@@ -1,6 +1,7 @@
 description '日志服务接口'
 
 dependencies {
+    compile project(':peacetrue-task-executor-api')
     compile 'com.github.peacetrue:spring-data-commons-page:1.0-RELEASE'
     compile 'com.github.peacetrue:peacetrue-core:1.0-SNAPSHOT'
 }

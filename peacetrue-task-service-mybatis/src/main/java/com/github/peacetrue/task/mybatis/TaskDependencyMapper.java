@@ -45,7 +45,7 @@ public interface TaskDependencyMapper {
             @Result(column = "task_id", property = "taskId", id = true),
             @Result(column = "dependent_task_id", property = "dependentTaskId", id = true)
     })
-    List<TaskDependency> selectMany(SelectStatementProvider selectStatement);
+    <T> List<TaskDependency<T>> selectMany(SelectStatementProvider selectStatement);
 
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
     @UpdateProvider(type = SqlProviderAdapter.class, method = "update")
@@ -92,14 +92,14 @@ public interface TaskDependencyMapper {
     }
 
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
-    default QueryExpressionDSL<MyBatis3SelectModelAdapter<List<TaskDependency>>> selectByExample() {
-        return SelectDSL.selectWithMapper(this::selectMany, taskId, dependentTaskId)
+    default <T> QueryExpressionDSL<MyBatis3SelectModelAdapter<List<TaskDependency<T>>>> selectByExample() {
+        return SelectDSL.selectWithMapper(this::<T>selectMany, taskId, dependentTaskId)
                 .from(taskDependency);
     }
 
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
-    default QueryExpressionDSL<MyBatis3SelectModelAdapter<List<TaskDependency>>> selectDistinctByExample() {
-        return SelectDSL.selectDistinctWithMapper(this::selectMany, taskId, dependentTaskId)
+    default <T> QueryExpressionDSL<MyBatis3SelectModelAdapter<List<TaskDependency<T>>>> selectDistinctByExample() {
+        return SelectDSL.selectDistinctWithMapper(this::<T>selectMany, taskId, dependentTaskId)
                 .from(taskDependency);
     }
 
@@ -120,17 +120,17 @@ public interface TaskDependencyMapper {
     //append
 
     @SuppressWarnings("unchecked")
-    default <T> List<TaskDependency> selectByTaskId(Collection<T> taskIds) {
-        return selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isIn(new ArrayList<>(taskIds))).build().execute();
+    default <T> List<TaskDependency<T>> selectByTaskId(Collection<T> taskIds) {
+        return TaskDependencyMapper.this.<T>selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isIn(new ArrayList<>(taskIds))).build().execute();
     }
 
     @SuppressWarnings("unchecked")
-    default <T> List<TaskDependency> selectByTaskId(T taskId) {
-        return selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isEqualTo(taskId)).build().execute();
+    default <T> List<TaskDependency<T>> selectByTaskId(T taskId) {
+        return TaskDependencyMapper.this.<T>selectByExample().where((SqlColumn<T>) taskDependency.taskId, SqlBuilder.isEqualTo(taskId)).build().execute();
     }
 
     @SuppressWarnings("unchecked")
-    default <T> List<TaskDependency> selectByDependentTaskId(T dependentTaskId) {
-        return selectByExample().where((SqlColumn<T>) taskDependency.dependentTaskId, SqlBuilder.isEqualTo(dependentTaskId)).build().execute();
+    default <T> List<TaskDependency<T>> selectByDependentTaskId(T dependentTaskId) {
+        return TaskDependencyMapper.this.<T>selectByExample().where((SqlColumn<T>) taskDependency.dependentTaskId, SqlBuilder.isEqualTo(dependentTaskId)).build().execute();
     }
 }

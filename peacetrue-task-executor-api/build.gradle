@@ -1,5 +1,5 @@
 description '任务执行器'
 
 dependencies {
-    compile project(':peacetrue-task-service-api')
+    compile 'com.github.peacetrue:peacetrue-core:1.0-SNAPSHOT'
 }

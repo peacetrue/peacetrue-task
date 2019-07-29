@@ -13,6 +13,8 @@ import java.util.List;
 @Data
 public class TaskVO<Id, OperatorId> implements Serializable {
 
+    private static final long serialVersionUID = 0L;
+
     private Id id;
     private String groupId;
     private String name;

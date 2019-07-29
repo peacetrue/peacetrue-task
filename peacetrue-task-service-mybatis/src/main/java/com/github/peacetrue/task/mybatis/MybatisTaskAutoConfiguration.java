@@ -1,10 +1,7 @@
 package com.github.peacetrue.task.mybatis;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.peacetrue.associate.AssociatedSourceBuilder;
 import com.github.peacetrue.associate.AssociatedSourceBuilderImpl;
-import com.github.peacetrue.jackson.ObjectMapperWrapper;
-import com.github.peacetrue.task.executor.TaskDependencyService;
 import com.github.peacetrue.task.service.TaskService;
 import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
@@ -16,6 +13,7 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * @author xiayx
@@ -27,15 +25,15 @@ public class MybatisTaskAutoConfiguration {
 
     public MybatisTaskAutoConfiguration(MybatisTaskProperties properties) {
         Optional.ofNullable(properties.getTableNames()).ifPresent(tableNames -> {
-            Optional.ofNullable(tableNames.getTask()).ifPresent(value -> setField(TaskDynamicSqlSupport.task, value));
-            Optional.ofNullable(tableNames.getTaskDependency()).ifPresent(value -> setField(TaskDependencyDynamicSqlSupport.taskDependency, value));
+            Optional.ofNullable(tableNames.getTask()).ifPresent(value -> setFieldValue(TaskDynamicSqlSupport.task, value));
+            Optional.ofNullable(tableNames.getTaskDependency()).ifPresent(value -> setFieldValue(TaskDependencyDynamicSqlSupport.taskDependency, value));
         });
     }
 
-    private void setField(Object object, String value) {
-        Field field = ReflectionUtils.findField(object.getClass(), "name", String.class);
+    private void setFieldValue(Object object, String value) {
+        Field field = ReflectionUtils.findField(object.getClass(), "nameSupplier", Supplier.class);
         field.setAccessible(true);
-        ReflectionUtils.setField(field, object, value);
+        ReflectionUtils.setField(field, object, (Supplier) () -> value);
     }
 
     @Bean
@@ -48,17 +46,5 @@ public class MybatisTaskAutoConfiguration {
     public AssociatedSourceBuilder associatedSourceBuilder() {
         return new AssociatedSourceBuilderImpl();
     }
-
-    @Bean
-    @ConditionalOnMissingBean(ObjectMapperWrapper.class)
-    public ObjectMapperWrapper objectMapperWrapper(ObjectMapper objectMapper) {
-        return new ObjectMapperWrapper(objectMapper);
-    }
-
-    @Bean
-    public TaskDependencyService taskDependencyService() {
-        return new TaskDependencyServiceImpl();
-    }
-
 
 }

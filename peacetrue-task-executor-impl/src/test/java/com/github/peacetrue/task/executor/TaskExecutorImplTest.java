@@ -44,12 +44,4 @@ public class TaskExecutorImplTest {
         Thread.sleep(5000L);
     }
 
-    @Test
-    public void execute4IdTaskImpl() throws Exception {
-        IdTaskImpl<Integer> task = new IdTaskImpl<>(1, "@solveQuestion.submitQuestion(1000,#root)", "安宁!");
-        task.setInput(taskIOMapper.writeObject(task, "安宁!"));
-        task.addDependOn(new IdTaskImpl<>(2, "@solveQuestion.thinkPlan(#task_0,#root)", "1000"));
-        taskExecutor.execute(task);
-        Thread.sleep(5000L);
-    }
 }

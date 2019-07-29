@@ -76,13 +76,12 @@ public class TaskExecutorAmqpAutoConfiguration {
     }
 
 
-    @Autowired
-    private AmqpTemplate amqpTemplate;
-
     @Bean
     public Object taskHandler() {
         return new Object() {
             private Logger logger = LoggerFactory.getLogger(getClass());
+            @Autowired
+            private AmqpTemplate amqpTemplate;
 
             @Autowired
             private TaskExecutorAmqpProperties properties;
