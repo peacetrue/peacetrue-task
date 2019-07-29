@@ -1,6 +1,7 @@
 package com.github.peacetrue.task.service;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -10,7 +11,8 @@ import java.util.List;
  * @param <Id>
  * @param <OperatorId>
  */
-@Data
+@Getter
+@Setter
 public class TaskVO<Id, OperatorId> implements Serializable {
 
     private static final long serialVersionUID = 0L;
@@ -29,6 +31,10 @@ public class TaskVO<Id, OperatorId> implements Serializable {
     private OperatorId modifierId;
     private Date modifiedTime;
     private List<Id> dependentIds;
+    private List<TaskVO<Id, OperatorId>> dependOn;
 
-
+    @Override
+    public String toString() {
+        return String.valueOf(id);
+    }
 }

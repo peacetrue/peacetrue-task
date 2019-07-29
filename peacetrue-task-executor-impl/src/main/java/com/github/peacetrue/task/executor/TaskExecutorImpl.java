@@ -2,6 +2,8 @@ package com.github.peacetrue.task.executor;
 
 import com.github.peacetrue.flow.FinalState;
 import com.github.peacetrue.flow.Tense;
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -30,6 +32,8 @@ import java.util.function.BiFunction;
 /**
  * @author xiayx
  */
+@Getter
+@Setter
 public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -183,4 +187,6 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         }
         dependOn.forEach(this::execute);
     }
+
+
 }

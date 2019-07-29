@@ -24,8 +24,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.github.peacetrue.associate.AssociatedSourceBuilderUtils.getPropertyValue;
@@ -52,15 +55,28 @@ public class TaskServiceImpl implements TaskService {
     public TaskVO add(TaskAddDTO dto) {
         logger.info("新增任务: {}", dto);
 
-        List<Task> tasks = taskMapper.selectByContent(dto.getBody(), dto.getInput());
-        logger.debug("取得相同内容和参数的任务[{}]个", tasks.size());
-        if (!tasks.isEmpty()) {
-            Task task = tasks.get(0);
-            TaskVO taskVO = BeanUtils.map(task, TaskVO.class);
-            taskVO.setDependentIds(getDependentTaskId(taskVO.getId()));
-            return taskVO;
-        }
+        TaskVO taskVO = new TaskVO();
+        this.add(taskVO, dto);
+        if (!Boolean.TRUE.equals(dto.getExecute())) return taskVO;
 
+        try {
+            this.execute(taskVO);
+        } catch (Exception e) {
+            logger.warn("执行任务[{}]异常", taskVO.getId(), e);
+        }
+        return taskVO;
+    }
+
+    protected void add(TaskVO vo, TaskAddDTO dto) {
+        Task task = this.saveTask(dto);
+        this.saveDependency(task.getId(), dto.getDependentIds());
+        BeanUtils.copyProperties(task, vo);
+        vo.setDependentIds(dto.getDependentIds());
+        vo.setDependOn(new LinkedList<>());
+        this.saveDependOn(vo, dto.getDependOn());
+    }
+
+    protected Task saveTask(TaskAddDTO dto) {
         Task task = BeanUtils.map(dto, Task.class);
         task.setStateCode(Tense.TODO.getCode());
         task.setCreatorId(dto.getOperatorId());
@@ -69,25 +85,61 @@ public class TaskServiceImpl implements TaskService {
         task.setModifiedTime(task.getCreatedTime());
         logger.debug("保存任务信息[{}]", task);
         int count = taskMapper.insert(task);
-        logger.debug("共影响{}行记录", count);
-
-        if (dto.getDependentIds() != null) {
-            logger.debug("保存任务的依赖信息[{}]", dto.getDependentIds());
-            dto.getDependentIds().forEach(dependentId -> {
-                TaskDependency record = new TaskDependency();
-                record.setTaskId(task.getId());
-                record.setDependentTaskId(dependentId);
-                taskDependencyMapper.insert(record);
-            });
-        }
-
-        TaskVO taskVO = BeanUtils.map(task, TaskVO.class);
-        taskVO.setDependentIds(dto.getDependentIds());
-        return taskVO;
+        logger.debug("共影响[{}]行记录", count);
+        return task;
     }
 
-    private <T> List<T> getDependentTaskId(T id) {
-        return taskDependencyMapper.selectByTaskId(id).stream().map(TaskDependency::getDependentTaskId).collect(Collectors.toList());
+    protected void saveDependency(Object taskId, @Nullable List dependentIds) {
+        if (CollectionUtils.isEmpty(dependentIds)) return;
+        for (Object dependentId : dependentIds) {
+            TaskDependency record = new TaskDependency();
+            record.setTaskId(taskId);
+            record.setDependentTaskId(dependentId);
+            logger.debug("保存任务依赖信息[{}->{}]", taskId, dependentId);
+            taskDependencyMapper.insert(record);
+        }
+    }
+
+    protected void saveDependOn(TaskVO vo, List<TaskAddDTO> dependOn) {
+        if (CollectionUtils.isEmpty(dependOn)) return;
+
+        for (TaskAddDTO dependOnDTO : dependOn) {
+            logger.info("保存依赖于任务[{}]的任务[{}]", vo.getId(), dependOnDTO);
+            if (dependOnDTO.getDependentIds() == null) dependOnDTO.setDependentIds(new LinkedList<>());
+            dependOnDTO.getDependentIds().add(vo.getId());
+            TaskVO dependOnVO = new TaskVO();
+            vo.getDependOn().add(dependOnVO);
+            this.add(dependOnVO, dependOnDTO);
+        }
+    }
+
+    protected void execute(TaskVO taskVO) {
+        List<TaskVO> vos = this.toList(taskVO);
+        List<TaskExecuteDTO> executeDTOS = vos.stream().map(vo -> BeanUtils.map(vo, TaskExecuteDTO.class)).collect(Collectors.toList());
+        executeDTOS.forEach(dto -> dto.setDependOn(null));
+        Map<Object, TaskExecuteDTO> executeDTOMap = BeanUtils.map(executeDTOS, "id");
+        vos.forEach(vo -> Optional.ofNullable(vo.getDependentIds()).ifPresent(dependentIds -> dependentIds.forEach(dependentId ->
+                executeDTOMap.get(vo.getId()).addDependent(executeDTOMap.get(dependentId)))
+        ));
+        this.execute(executeDTOMap.get(taskVO.getId()));
+    }
+
+    private List<TaskVO> toList(TaskVO taskVO) {
+        List<TaskVO> vos = new LinkedList<>();
+        this.eachTaskVO(taskVO, vo -> {
+            vos.add(vo);
+            return false;
+        });
+        return vos;
+    }
+
+    private boolean eachTaskVO(TaskVO vo, Predicate<TaskVO> predicate) {
+        if (predicate.test(vo)) return true;
+        if (vo.getDependOn() == null) return false;
+        for (Object dependOn : vo.getDependOn()) {
+            if (eachTaskVO((TaskVO) dependOn, predicate)) return true;
+        }
+        return false;
     }
 
     @Override
