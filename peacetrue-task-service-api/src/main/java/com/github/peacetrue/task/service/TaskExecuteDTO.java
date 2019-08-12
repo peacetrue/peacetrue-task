@@ -16,6 +16,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class TaskExecuteDTO<Id, OperatorId> extends TaskIdExecuteDTO<Id, OperatorId> implements Task {
 
+    private String name;
     private String input;
     private String body;
     private String stateCode;

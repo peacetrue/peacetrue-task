@@ -28,6 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author xiayx
@@ -53,6 +55,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     private BeanResolver beanResolver;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+    public TaskExecutorProperties.VariableNames variableNames;
 
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
@@ -134,11 +137,14 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     protected Map<String, Object> getDependentVariables(Task task) {
         List<Task> dependent = task.getDependent();
         if (CollectionUtils.isEmpty(dependent)) return Collections.emptyMap();
+
         Map<String, Object> variables = new HashMap<>();
-        int i = 0;
-        for (Task item : dependent) {
-            variables.put(taskId.apply(item, i++), taskIOMapper.readObject(item, item.getOutput()));
-        }
+        variables.put(variableNames.getTasks(), dependent);
+        IntStream.range(0, dependent.size()).forEach(index -> variables.put(variableNames.getTaskPrefix() + taskId.apply(dependent.get(index), index), dependent.get(index)));
+
+        List<Object> outputs = dependent.stream().map(item -> taskIOMapper.readObject(item, item.getOutput())).collect(Collectors.toList());
+        variables.put(variableNames.getOutputs(), outputs);
+        IntStream.range(0, outputs.size()).forEach(index -> variables.put(variableNames.getOutputPrefix() + taskId.apply(dependent.get(index), index), outputs.get(index)));
         return variables;
     }
 

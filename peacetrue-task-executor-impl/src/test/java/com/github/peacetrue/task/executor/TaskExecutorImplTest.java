@@ -39,7 +39,7 @@ public class TaskExecutorImplTest {
     public void execute() throws Exception {
         TaskImpl task = new TaskImpl("@solveQuestion.submitQuestion(1000,#root)", "安宁!");
         task.setInput(taskIOMapper.writeObject(task, "安宁!"));
-        task.addDependOn(new TaskImpl("@solveQuestion.thinkPlan(#task_0,#root)", "1000"));
+        task.addDependOn(new TaskImpl("@solveQuestion.thinkPlan(#tasks[0],#root)", "1000"));
         taskExecutor.execute(task);
         Thread.sleep(5000L);
     }

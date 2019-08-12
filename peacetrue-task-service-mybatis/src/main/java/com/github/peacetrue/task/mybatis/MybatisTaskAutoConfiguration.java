@@ -2,6 +2,8 @@ package com.github.peacetrue.task.mybatis;
 
 import com.github.peacetrue.associate.AssociatedSourceBuilder;
 import com.github.peacetrue.associate.AssociatedSourceBuilderImpl;
+import com.github.peacetrue.task.executor.Task;
+import com.github.peacetrue.task.service.TaskExecuteDTO;
 import com.github.peacetrue.task.service.TaskService;
 import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
@@ -13,6 +15,7 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
@@ -47,4 +50,8 @@ public class MybatisTaskAutoConfiguration {
         return new AssociatedSourceBuilderImpl();
     }
 
+    @Bean("peacetureTaskId")
+    public BiFunction<Task, Integer, String> taskId() {
+        return (task, integer) -> ((TaskExecuteDTO) task).getName();
+    }
 }
