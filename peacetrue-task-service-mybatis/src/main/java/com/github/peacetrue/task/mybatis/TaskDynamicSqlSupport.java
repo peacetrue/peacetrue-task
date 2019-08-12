@@ -10,6 +10,7 @@ import java.util.Date;
 public final class TaskDynamicSqlSupport {
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
     public static final Task task = new Task();
+    public static final Task task2 = new Task();
 
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
     public static final SqlColumn id = task.id;

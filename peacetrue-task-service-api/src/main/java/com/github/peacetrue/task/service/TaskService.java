@@ -16,6 +16,9 @@ public interface TaskService {
     /** 添加任务 */
     TaskVO add(TaskAddDTO task);
 
+    /** 添加任务 */
+    List<TaskVO> add(List<TaskAddDTO> tasks);
+
     /** 分页查询任务信息 */
     Page<TaskVO> query(TaskQueryParams queryParams, Pageable pageable);
 

@@ -6,6 +6,7 @@ import lombok.Setter;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @param <Id>
@@ -32,6 +33,17 @@ public class TaskVO<Id, OperatorId> implements Serializable {
     private Date modifiedTime;
     private List<Id> dependentIds;
     private List<TaskVO<Id, OperatorId>> dependOn;
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (!(object instanceof TaskVO)) return false;
+        TaskVO<?, ?> that = (TaskVO<?, ?>) object;
+        return Objects.equals(groupId, that.groupId) &&
+                Objects.equals(name, that.name) &&
+                Objects.equals(body, that.body) &&
+                Objects.equals(input, that.input);
+    }
 
     @Override
     public String toString() {

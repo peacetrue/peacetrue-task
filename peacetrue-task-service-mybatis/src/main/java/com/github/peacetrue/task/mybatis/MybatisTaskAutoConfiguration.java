@@ -28,7 +28,10 @@ public class MybatisTaskAutoConfiguration {
 
     public MybatisTaskAutoConfiguration(MybatisTaskProperties properties) {
         Optional.ofNullable(properties.getTableNames()).ifPresent(tableNames -> {
-            Optional.ofNullable(tableNames.getTask()).ifPresent(value -> setFieldValue(TaskDynamicSqlSupport.task, value));
+            Optional.ofNullable(tableNames.getTask()).ifPresent(value -> {
+                setFieldValue(TaskDynamicSqlSupport.task, value);
+                setFieldValue(TaskDynamicSqlSupport.task2, value);
+            });
             Optional.ofNullable(tableNames.getTaskDependency()).ifPresent(value -> setFieldValue(TaskDependencyDynamicSqlSupport.taskDependency, value));
         });
     }

@@ -14,6 +14,7 @@ import com.github.peacetrue.task.executor.TaskStartedEvent;
 import com.github.peacetrue.task.executor.TaskSucceededEvent;
 import com.github.peacetrue.task.service.*;
 import com.github.peacetrue.util.EntityNotFoundException;
+import lombok.Data;
 import org.mybatis.dynamic.sql.SqlBuilder;
 import org.mybatis.dynamic.sql.SqlColumn;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.github.peacetrue.associate.AssociatedSourceBuilderUtils.getPropertyValue;
@@ -56,7 +58,7 @@ public class TaskServiceImpl implements TaskService {
         logger.info("新增任务: {}", dto);
 
         TaskVO taskVO = new TaskVO();
-        this.add(taskVO, dto);
+        this.add(taskVO, dto, new Saved());
         if (!Boolean.TRUE.equals(dto.getExecute())) return taskVO;
 
         try {
@@ -67,13 +69,38 @@ public class TaskServiceImpl implements TaskService {
         return taskVO;
     }
 
-    protected void add(TaskVO vo, TaskAddDTO dto) {
-        Task task = this.saveTask(dto);
-        this.saveDependency(task.getId(), dto.getDependentIds());
-        BeanUtils.copyProperties(task, vo);
-        vo.setDependentIds(dto.getDependentIds());
-        vo.setDependOn(new LinkedList<>());
-        this.saveDependOn(vo, dto.getDependOn());
+    @Data
+    public static class Saved {
+        private Map<TaskAddDTO, TaskVO> tasks = new HashMap<>();
+        private Map<Object, Set<Object>> dependencies = new HashMap<>();
+    }
+
+    protected void add(TaskVO vo, TaskAddDTO dto, Saved saved) {
+        if (vo.getId() == null) {
+            Task task = this.saveTask(dto);
+            BeanUtils.copyProperties(task, vo);
+            vo.setDependentIds(new LinkedList());
+            vo.setDependOn(new LinkedList<>());
+            saved.getTasks().put(dto, vo);
+        }
+
+        Set<Object> savedDependentIds = saved.getDependencies().computeIfAbsent(vo.getId(), v -> new HashSet<>());
+        Set differenceSet = (Set) this.differenceSet(HashSet::new, dto.getDependentIds(), savedDependentIds);
+        this.saveDependency(vo.getId(), differenceSet);
+        savedDependentIds.addAll(differenceSet);
+        vo.getDependentIds().addAll(differenceSet);
+
+        this.saveDependOn(vo, dto.getDependOn(), saved);
+    }
+
+    private <T, C extends Collection<T>> C differenceSet(Supplier<? extends C> supplier,
+                                                         Collection<T> one,
+                                                         Collection<T> another) {
+        if (one == null) return supplier.get();
+        C collection = supplier.get();
+        collection.addAll(one);
+        collection.removeAll(another);
+        return collection;
     }
 
     protected Task saveTask(TaskAddDTO dto) {
@@ -89,7 +116,7 @@ public class TaskServiceImpl implements TaskService {
         return task;
     }
 
-    protected void saveDependency(Object taskId, @Nullable List dependentIds) {
+    protected void saveDependency(Object taskId, @Nullable Collection dependentIds) {
         if (CollectionUtils.isEmpty(dependentIds)) return;
         for (Object dependentId : dependentIds) {
             TaskDependency record = new TaskDependency();
@@ -100,32 +127,32 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    protected void saveDependOn(TaskVO vo, List<TaskAddDTO> dependOn) {
+    protected void saveDependOn(TaskVO vo, List<TaskAddDTO> dependOn, Saved saved) {
         if (CollectionUtils.isEmpty(dependOn)) return;
 
         for (TaskAddDTO dependOnDTO : dependOn) {
             logger.info("保存依赖于任务[{}]的任务[{}]", vo.getId(), dependOnDTO);
             if (dependOnDTO.getDependentIds() == null) dependOnDTO.setDependentIds(new LinkedList<>());
             dependOnDTO.getDependentIds().add(vo.getId());
-            TaskVO dependOnVO = new TaskVO();
+            TaskVO dependOnVO = saved.getTasks().getOrDefault(dependOnDTO, new TaskVO());
             vo.getDependOn().add(dependOnVO);
-            this.add(dependOnVO, dependOnDTO);
+            this.add(dependOnVO, dependOnDTO, saved);
         }
     }
 
     protected void execute(TaskVO taskVO) {
-        List<TaskVO> vos = this.toList(taskVO);
-        List<TaskExecuteDTO> executeDTOS = vos.stream().map(vo -> BeanUtils.map(vo, TaskExecuteDTO.class)).collect(Collectors.toList());
-        executeDTOS.forEach(dto -> dto.setDependOn(null));
-        Map<Object, TaskExecuteDTO> executeDTOMap = BeanUtils.map(executeDTOS, "id");
+        Set<TaskVO> vos = this.toSet(taskVO);
+        List<TaskExecuteDTO> dtos = vos.stream().map(vo -> BeanUtils.map(vo, TaskExecuteDTO.class)).collect(Collectors.toList());
+        dtos.forEach(dto -> dto.setDependOn(null));
+        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
         vos.forEach(vo -> Optional.ofNullable(vo.getDependentIds()).ifPresent(dependentIds -> dependentIds.forEach(dependentId ->
-                executeDTOMap.get(vo.getId()).addDependent(executeDTOMap.get(dependentId)))
+                dtoMap.get(vo.getId()).addDependent(dtoMap.get(dependentId)))
         ));
-        this.execute(executeDTOMap.get(taskVO.getId()));
+        this.execute(dtoMap.get(taskVO.getId()));
     }
 
-    private List<TaskVO> toList(TaskVO taskVO) {
-        List<TaskVO> vos = new LinkedList<>();
+    private Set<TaskVO> toSet(TaskVO taskVO) {
+        Set<TaskVO> vos = new HashSet<>();
         this.eachTaskVO(taskVO, vo -> {
             vos.add(vo);
             return false;
@@ -140,6 +167,12 @@ public class TaskServiceImpl implements TaskService {
             if (eachTaskVO((TaskVO) dependOn, predicate)) return true;
         }
         return false;
+    }
+
+    @Override
+    public List<TaskVO> add(List<TaskAddDTO> tasks) {
+        logger.info("新增[{}]个任务", tasks.size());
+        return tasks.stream().map(this::add).collect(Collectors.toList());
     }
 
     @Override

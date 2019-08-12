@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "peacetrue.task.amqp")
 public class TaskExecutorAmqpProperties {
+    private Boolean enabled = false;
     private String startedName = "task.started";
     private String succeededName = "task.succeeded";
     private String failedName = "task.failed";
