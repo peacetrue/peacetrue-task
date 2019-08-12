@@ -51,7 +51,7 @@ public class TaskController {
     @PostMapping(value = "${peacetrue.task.execute-url}")
     public void execute(TaskIdExecuteDTO dto) {
         logger.info("执行任务[{}]", dto);
-        taskService.execute(dto);
+        taskService.execute(BeanUtils.map(dto, TaskIdExecuteDTO.class));
     }
 
 }
