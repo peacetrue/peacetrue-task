@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,7 @@ import org.springframework.core.annotation.Order;
 @ConditionalOnClass({RabbitAutoConfiguration.class, AmqpTemplate.class})
 @ImportAutoConfiguration(RabbitAutoConfiguration.class)
 @EnableConfigurationProperties(TaskExecutorAmqpProperties.class)
+@ConditionalOnProperty(prefix = "peacetrue.task.amqp", name = "enabled", havingValue = "true")
 public class TaskExecutorAmqpAutoConfiguration {
 
     private TaskExecutorAmqpProperties properties;
