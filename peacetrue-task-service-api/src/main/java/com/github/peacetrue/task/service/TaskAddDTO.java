@@ -12,14 +12,12 @@ import java.util.Objects;
 @Data
 public class TaskAddDTO<Id, OperatorId> extends OperatorCapableImpl<OperatorId> {
 
-    private List<Id> dependentIds;
     private String groupId;
     private String name;
     private String body;
     private String input;
+    private List<Id> dependentIds;
     private List<TaskAddDTO<Id, OperatorId>> dependOn;
-    /** 新增后立刻执行 */
-    private Boolean execute;
 
     @Override
     public boolean equals(Object object) {

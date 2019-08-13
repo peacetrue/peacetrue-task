@@ -54,19 +54,19 @@ public class TaskServiceImpl implements TaskService {
     private TaskExecutor taskExecutor;
 
     @Transactional
-    public TaskVO add(TaskAddDTO dto) {
-        logger.info("新增任务: {}", dto);
+    public TaskVO add(TaskAddDTO dto, boolean execute) {
+        logger.info("新增任务[{}]{}", dto, execute ? "，并立即执行" : "");
 
-        TaskVO taskVO = new TaskVO();
-        this.add(taskVO, dto, new Saved());
-        if (!Boolean.TRUE.equals(dto.getExecute())) return taskVO;
+        TaskVO vo = new TaskVO();
+        this.add(vo, dto, new Saved());
+        if (!execute) return vo;
 
         try {
-            this.execute(taskVO);
+            this.execute(vo);
         } catch (Exception e) {
-            logger.warn("执行任务[{}]异常", taskVO.getId(), e);
+            logger.warn("执行任务[{}]异常", vo, e);
         }
-        return taskVO;
+        return vo;
     }
 
     @Data
@@ -76,12 +76,19 @@ public class TaskServiceImpl implements TaskService {
     }
 
     protected void add(TaskVO vo, TaskAddDTO dto, Saved saved) {
+        this.addInner(vo, dto, saved);
+        this.saveDependOn(vo, dto.getDependOn(), saved);
+    }
+
+    private void addInner(TaskVO vo, TaskAddDTO dto, Saved saved) {
         if (vo.getId() == null) {
             Task task = this.saveTask(dto);
             BeanUtils.copyProperties(task, vo);
             vo.setDependentIds(new LinkedList());
             vo.setDependOn(new LinkedList<>());
             saved.getTasks().put(dto, vo);
+        } else {
+            logger.debug("任务[{}]已保存为任务[{}]", dto, vo.getId());
         }
 
         Set<Object> savedDependentIds = saved.getDependencies().computeIfAbsent(vo.getId(), v -> new HashSet<>());
@@ -89,12 +96,10 @@ public class TaskServiceImpl implements TaskService {
         this.saveDependency(vo.getId(), differenceSet);
         savedDependentIds.addAll(differenceSet);
         vo.getDependentIds().addAll(differenceSet);
-
-        this.saveDependOn(vo, dto.getDependOn(), saved);
     }
 
     private <T, C extends Collection<T>> C differenceSet(Supplier<? extends C> supplier,
-                                                         Collection<T> one,
+                                                         @Nullable Collection<T> one,
                                                          Collection<T> another) {
         if (one == null) return supplier.get();
         C collection = supplier.get();
@@ -111,8 +116,8 @@ public class TaskServiceImpl implements TaskService {
         task.setModifierId(dto.getOperatorId());
         task.setModifiedTime(task.getCreatedTime());
         logger.debug("保存任务信息[{}]", task);
-        int count = taskMapper.insert(task);
-        logger.debug("共影响[{}]行记录", count);
+        taskMapper.insert(task);
+        logger.debug("得到任务主键为[{}]", task.getId());
         return task;
     }
 
@@ -127,7 +132,7 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    protected void saveDependOn(TaskVO vo, List<TaskAddDTO> dependOn, Saved saved) {
+    protected void saveDependOn(TaskVO vo, @Nullable List<TaskAddDTO> dependOn, Saved saved) {
         if (CollectionUtils.isEmpty(dependOn)) return;
 
         for (TaskAddDTO dependOnDTO : dependOn) {
@@ -136,23 +141,30 @@ public class TaskServiceImpl implements TaskService {
             dependOnDTO.getDependentIds().add(vo.getId());
             TaskVO dependOnVO = saved.getTasks().getOrDefault(dependOnDTO, new TaskVO());
             vo.getDependOn().add(dependOnVO);
-            this.add(dependOnVO, dependOnDTO, saved);
+            this.addInner(dependOnVO, dependOnDTO, saved);
+        }
+
+        for (TaskAddDTO dependOnDTO : dependOn) {
+            this.saveDependOn(saved.getTasks().get(dependOnDTO), dependOnDTO.getDependOn(), saved);
         }
     }
 
     protected void execute(TaskVO taskVO) {
         Set<TaskVO> vos = this.toSet(taskVO);
-        List<TaskExecuteDTO> dtos = vos.stream().map(vo -> BeanUtils.map(vo, TaskExecuteDTO.class)).collect(Collectors.toList());
-        dtos.forEach(dto -> dto.setDependOn(null));
-        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
-        vos.forEach(vo -> Optional.ofNullable(vo.getDependentIds()).ifPresent(dependentIds -> dependentIds.forEach(dependentId ->
-                dtoMap.get(vo.getId()).addDependent(dtoMap.get(dependentId)))
-        ));
+        Map<Object, TaskExecuteDTO> dtoMap = toExecuteDTO(vos);
         this.execute(dtoMap.get(taskVO.getId()));
     }
 
+    private Map<Object, TaskExecuteDTO> toExecuteDTO(Collection<TaskVO> vos) {
+        List<TaskExecuteDTO> dtos = vos.stream().map(vo -> BeanUtils.map(vo, TaskExecuteDTO.class)).collect(Collectors.toList());
+        dtos.forEach(dto -> dto.setDependOn(null));
+        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
+        this.setDependency(dtoMap);
+        return dtoMap;
+    }
+
     private Set<TaskVO> toSet(TaskVO taskVO) {
-        Set<TaskVO> vos = new HashSet<>();
+        Set<TaskVO> vos = new LinkedHashSet<>();
         this.eachTaskVO(taskVO, vo -> {
             vos.add(vo);
             return false;
@@ -169,10 +181,51 @@ public class TaskServiceImpl implements TaskService {
         return false;
     }
 
+    private void setDependency(Map<Object, TaskExecuteDTO> dtos) {
+        logger.info("设置任务[{}]的依赖关系", dtos.values());
+
+        List<TaskDependency<Object>> taskDependencies = this.taskDependencyMapper.selectByTaskId(dtos.keySet());
+        if (taskDependencies.isEmpty()) return;
+
+        Map<Object, List<Object>> taskDependencyMap = taskDependencies.stream().collect(Collectors.groupingBy(
+                TaskDependency::getTaskId,
+                Collectors.mapping(TaskDependency::getDependentTaskId, Collectors.toList())));
+        dtos.values().forEach(dto -> {
+            Optional.ofNullable(taskDependencyMap.get(dto.getId()))
+                    .ifPresent(ids -> ids.forEach(id -> dto.addDependent(dtos.get(id))));
+        });
+    }
+
     @Override
-    public List<TaskVO> add(List<TaskAddDTO> tasks) {
-        logger.info("新增[{}]个任务", tasks.size());
-        return tasks.stream().map(this::add).collect(Collectors.toList());
+    @Transactional
+    public List<TaskVO> add(List<TaskAddDTO> adds, boolean execute) {
+        logger.info("添加任务集合共[{}]个{}", adds.size(), execute ? "，并立即执行" : "");
+
+        LinkedHashSet<TaskAddDTO> uniques = new LinkedHashSet<>(adds);
+        Saved saved = new Saved();
+        List<TaskVO> treeTaskVos = new LinkedList<>();
+        for (TaskAddDTO unique : uniques) {
+            TaskVO taskVO = new TaskVO();
+            this.addInner(taskVO, unique, saved);
+            treeTaskVos.add(taskVO);
+        }
+
+        for (TaskAddDTO unique : uniques) {
+            this.saveDependOn(saved.getTasks().get(unique), unique.getDependOn(), saved);
+        }
+
+        if (!execute) return treeTaskVos;
+
+        List<TaskVO> listTaskVos = treeTaskVos.stream().flatMap(vo -> toSet(vo).stream()).collect(Collectors.toList());
+        Map<Object, TaskExecuteDTO> executes = this.toExecuteDTO(listTaskVos);
+        treeTaskVos.forEach(vo -> {
+            try {
+                this.execute(executes.get(vo.getId()));
+            } catch (Exception e) {
+                logger.warn("执行任务[{}]异常", vo, e);
+            }
+        });
+        return treeTaskVos;
     }
 
     @Override
@@ -310,6 +363,39 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
+    public void execute(TaskGroupIdExecuteDTO dto) {
+        logger.info("执行任务组[{}]", dto);
+        List<Task> tasks = this.taskMapper.selectByGroupId(dto.getGroupId());
+        logger.debug("取得任务组[{}]下的所有任务(共[{}]个)", dto.getGroupId(), tasks.size());
+        if (tasks.isEmpty()) return;
+
+        Map<Object, TaskExecuteDTO> dtos = this.toExecuteDTO(tasks, dto);
+        for (TaskExecuteDTO executeDTO : dtos.values()) {
+            if (Tense.SUCCESS.getCode().equals(executeDTO.getStateCode())) {
+                logger.debug("跳过已经执行成功的任务[{}]", executeDTO);
+                continue;
+            }
+            if (executeDTO.getDependent().stream().anyMatch(dependent ->
+                    !Tense.SUCCESS.getCode().equals(executeDTO.getStateCode()))) {
+                logger.debug("跳过依赖任务中存在未完成的任务[{}]", executeDTO);
+                continue;
+            }
+            taskExecutor.execute(executeDTO);
+        }
+    }
+
+    private Map<Object, TaskExecuteDTO> toExecuteDTO(List<Task> tasks, OperatorCapable operatorCapable) {
+        List<TaskExecuteDTO> dtos = BeanUtils.replaceAsList(tasks, TaskExecuteDTO.class);
+        dtos.forEach(dto1 -> {
+            dto1.setOperatorId(operatorCapable.getOperatorId());
+            dto1.setOperatorName(operatorCapable.getOperatorName());
+        });
+        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
+        this.setDependency(dtoMap);
+        return dtoMap;
+    }
+
+    @Override
     public void execute(TaskIdExecuteDTO dto) {
         logger.info("执行任务[{}]", dto);
 
@@ -317,30 +403,8 @@ public class TaskServiceImpl implements TaskService {
         logger.debug("取得与任务[{}]同组的所有任务(共[{}]个)", dto, tasks.size());
         if (tasks.isEmpty()) return;
 
-        List<TaskExecuteDTO> dtos = BeanUtils.replaceAsList(tasks, TaskExecuteDTO.class);
-        dtos.forEach(dto1 -> {
-            dto1.setOperatorId(dto.getOperatorId());
-            dto1.setOperatorName(dto.getOperatorName());
-        });
-        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
-        this.setDependency(dtoMap, dto);
-
-        this.taskExecutor.execute(dtoMap.get(dto.getId()));
-    }
-
-    private void setDependency(Map<Object, TaskExecuteDTO> dtoMap, OperatorCapable operatorCapable) {
-        logger.info("设置任务[{}]的依赖关系", dtoMap.values());
-
-        List<TaskDependency<Object>> taskDependencies = this.taskDependencyMapper.selectByTaskId(dtoMap.keySet());
-        if (taskDependencies.isEmpty()) return;
-
-        Map<Object, List<Object>> taskDependencyMap = taskDependencies.stream().collect(Collectors.groupingBy(
-                TaskDependency::getTaskId,
-                Collectors.mapping(TaskDependency::getDependentTaskId, Collectors.toList())));
-        dtoMap.values().forEach(dto -> {
-            Optional.ofNullable(taskDependencyMap.get(dto.getId()))
-                    .ifPresent(ids -> ids.forEach(id -> dto.addDependent(dtoMap.get(id))));
-        });
+        Map<Object, TaskExecuteDTO> dtos = toExecuteDTO(tasks, dto);
+        this.taskExecutor.execute(dtos.get(dto.getId()));
     }
 
     @Override

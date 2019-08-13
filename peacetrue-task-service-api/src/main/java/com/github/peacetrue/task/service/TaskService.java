@@ -14,10 +14,18 @@ import java.util.List;
 public interface TaskService {
 
     /** 添加任务 */
-    TaskVO add(TaskAddDTO task);
+    default TaskVO add(TaskAddDTO task) {return add(task, false);}
 
     /** 添加任务 */
-    List<TaskVO> add(List<TaskAddDTO> tasks);
+    TaskVO add(TaskAddDTO task, boolean execute);
+
+    /** 添加任务集合 */
+    default List<TaskVO> add(List<TaskAddDTO> tasks) {
+        return add(tasks, false);
+    }
+
+    /** 添加任务集合 */
+    List<TaskVO> add(List<TaskAddDTO> tasks, boolean execute);
 
     /** 分页查询任务信息 */
     Page<TaskVO> query(TaskQueryParams queryParams, Pageable pageable);
@@ -56,6 +64,9 @@ public interface TaskService {
 
     /** 更新任务状态为执行失败 */
     void updateStateFailure(TaskFailureDTO dto);
+
+    /** 执行任务 */
+    void execute(TaskGroupIdExecuteDTO dto);
 
     /** 执行任务 */
     void execute(TaskIdExecuteDTO dto);

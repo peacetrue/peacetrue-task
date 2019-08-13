@@ -9,14 +9,14 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class TaskIdExecuteDTO<T, OperatorId> extends OperatorCapableImpl<OperatorId> {
+public class TaskGroupIdExecuteDTO<OperatorId> extends OperatorCapableImpl<OperatorId> {
 
     private static final long serialVersionUID = 0L;
 
-    private T id;
+    private String groupId;
 
     @Override
     public String toString() {
-        return String.valueOf(getId());
+        return String.valueOf(groupId);
     }
 }

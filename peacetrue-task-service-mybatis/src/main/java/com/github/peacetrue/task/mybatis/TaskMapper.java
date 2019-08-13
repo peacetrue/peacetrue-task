@@ -19,7 +19,6 @@ import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
 import javax.annotation.Generated;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -235,7 +234,6 @@ public interface TaskMapper {
         return selectByExample().where((SqlColumn<T>) task.id, SqlBuilder.isIn(new ArrayList<>(ids))).build().execute();
     }
 
-
     @SuppressWarnings("unchecked")
     default <T> List<Task> selectGroupById(T id) {
         return selectByExample()
@@ -245,10 +243,10 @@ public interface TaskMapper {
                 .build().execute();
     }
 
-    default List<Task> selectByContent(String body_, @Nullable String input_) {
+    default List<Task> selectByGroupId(String groupId_) {
         return selectByExample()
-                .where(body, SqlBuilder.isEqualTo(body_))
-                .and(input, input_ == null ? SqlBuilder.isNull() : SqlBuilder.isEqualTo(input_))
+                .where(groupId, SqlBuilder.isEqualTo(groupId_))
+                .orderBy(createdTime)
                 .build().execute();
     }
 

@@ -78,7 +78,6 @@ public class TaskServiceImplTest {
         dto4.setInput("[1,2,3]");
         dto4.setOperatorId(1L);
 
-//        dto.setExecute(true);
         dto.setDependOn(Arrays.asList(dto1, dto2));
         dto1.setDependOn(Collections.singletonList(dto3));
         dto2.setDependOn(Collections.singletonList(dto4));
@@ -91,29 +90,28 @@ public class TaskServiceImplTest {
     public void addList() throws Exception {
         TaskAddDTO<Long, Long> dto = new TaskAddDTO<>();
         dto.setGroupId("Order-1-uploadVideo");
-        dto.setName("haha");
+        dto.setName("1");
         dto.setBody("@solveQuestion.submitQuestion(1000)");
         dto.setInput("[1,2,3]");
         dto.setOperatorId(1L);
 
         TaskAddDTO<Long, Long> dto1 = new TaskAddDTO<>();
         dto1.setGroupId("Order-1-uploadVideo");
-        dto1.setName("haha");
+        dto1.setName("2");
         dto1.setBody("@solveQuestion.submitQuestion(1000)");
         dto1.setInput("[1,2,3]");
         dto1.setOperatorId(1L);
 
         TaskAddDTO<Long, Long> dto2 = new TaskAddDTO<>();
         dto2.setGroupId("Order-1-uploadVideo");
-        dto2.setName("haha");
+        dto2.setName("3");
         dto2.setBody("@solveQuestion.submitQuestion(1000)");
         dto2.setInput("[1,2,3]");
         dto2.setOperatorId(1L);
-
+        
         dto.setDependOn(Collections.singletonList(dto2));
         dto1.setDependOn(Collections.singletonList(dto2));
-//        dto.setExecute(true);
-        TaskVO add = taskService.add(dto);
+        List<TaskVO> add = taskService.add(Arrays.asList(dto,dto1));
         System.out.println(add);
         Thread.sleep(5000L);
     }
