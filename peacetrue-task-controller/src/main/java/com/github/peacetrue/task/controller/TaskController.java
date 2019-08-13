@@ -37,7 +37,7 @@ public class TaskController {
     public Page<TaskVO> query(TaskQueryParams params,
                               @PageableDefault(sort = "createdTime", direction = Sort.Direction.DESC) Pageable pageable) {
         logger.info("分页查询任务信息[{}]", params);
-        return taskService.query(BeanUtils.map(params, TaskQueryParams.class), pageable);
+        return taskService.query(params, pageable);
     }
 
     @ResponseBody

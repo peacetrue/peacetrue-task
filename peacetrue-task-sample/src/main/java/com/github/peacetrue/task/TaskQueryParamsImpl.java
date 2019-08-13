@@ -5,5 +5,5 @@ import com.github.peacetrue.task.service.TaskQueryParams;
 /**
  * @author xiayx
  */
-public class TaskQueryParamsImpl extends TaskQueryParams<Long> {
+public class TaskQueryParamsImpl extends TaskQueryParams {
 }

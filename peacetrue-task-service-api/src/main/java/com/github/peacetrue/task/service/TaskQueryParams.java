@@ -9,12 +9,11 @@ import java.io.Serializable;
  * @author xiayx
  */
 @Data
-public class TaskQueryParams<T> implements Serializable {
+public class TaskQueryParams implements Serializable {
 
     private static final long serialVersionUID = 0L;
 
     private String groupId;
-    private T id;
     private String body;
     private String input;
     private String stateCode;
