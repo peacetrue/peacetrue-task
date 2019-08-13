@@ -201,22 +201,21 @@ public class TaskServiceImpl implements TaskService {
     public List<TaskVO> add(List<TaskAddDTO> adds, boolean execute) {
         logger.info("添加任务集合共[{}]个{}", adds.size(), execute ? "，并立即执行" : "");
 
-        LinkedHashSet<TaskAddDTO> uniques = new LinkedHashSet<>(adds);
-        Saved saved = new Saved();
         List<TaskVO> treeTaskVos = new LinkedList<>();
-        for (TaskAddDTO unique : uniques) {
+        Saved saved = new Saved();
+        for (TaskAddDTO unique : adds) {
             TaskVO taskVO = new TaskVO();
             this.addInner(taskVO, unique, saved);
             treeTaskVos.add(taskVO);
         }
 
-        for (TaskAddDTO unique : uniques) {
+        for (TaskAddDTO unique : adds) {
             this.saveDependOn(saved.getTasks().get(unique), unique.getDependOn(), saved);
         }
 
         if (!execute) return treeTaskVos;
 
-        List<TaskVO> listTaskVos = treeTaskVos.stream().flatMap(vo -> toSet(vo).stream()).collect(Collectors.toList());
+        Set<TaskVO> listTaskVos = treeTaskVos.stream().flatMap(vo -> toSet(vo).stream()).collect(Collectors.toSet());
         Map<Object, TaskExecuteDTO> executes = this.toExecuteDTO(listTaskVos);
         treeTaskVos.forEach(vo -> {
             try {
@@ -236,7 +235,6 @@ public class TaskServiceImpl implements TaskService {
         PageHelper.startPage(pageable.getPageNumber() + 1, pageable.getPageSize());
         List<Task> entities = taskMapper.selectByExample()
                 .where(groupId, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getGroupId())))
-                .and((SqlColumn<Object>) id, SqlBuilder.isLikeWhenPresent(params.getId()))
                 .and(body, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getBody())))
                 .and(input, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getInput())))
                 .and(stateCode, SqlBuilder.isEqualToWhenPresent(params.getStateCode()))
