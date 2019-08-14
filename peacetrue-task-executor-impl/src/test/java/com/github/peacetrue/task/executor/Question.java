@@ -1,4 +1,4 @@
-package com.github.peacetrue.task.mybatis;
+package com.github.peacetrue.task.executor;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

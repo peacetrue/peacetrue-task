@@ -1,6 +1,5 @@
 package com.github.peacetrue.task.executor;
 
-import com.github.peacetrue.flow.FinalState;
 import com.github.peacetrue.flow.Tense;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,7 +61,8 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         this.beanResolver = new BeanFactoryResolver(beanFactory);
     }
 
-    public Future execute(Task task) {
+    @SuppressWarnings("unchecked")
+    public <T> Future<T> execute(Task task) {
         logger.info("执行任务[{}]", task);
 
         this.checkState(task);
@@ -91,7 +91,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
                 logger.warn("执行依赖于当前任务[{}]的其他任务发生异常", task, e);
             }
         }, taskExecutorService);
-        return future;
+        return (Future<T>) future;
     }
 
     protected void checkState(Task task) {
@@ -103,7 +103,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         if (Tense.SUCCESS.getCode().equals(task.getStateCode())) {
             throw new TaskExecuteException("任务已经执行成功了，请勿重复执行");
         }
-        logger.debug("当前任务[{}]的状态是正确的", task);
+        logger.debug("当前任务[{}]的状态正确", task);
     }
 
     protected void checkDependent(Task task) {
@@ -114,17 +114,21 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
             logger.debug("当前任务[{}]不依赖其他任务", task);
             return;
         }
-        if (dependents.stream().anyMatch(item -> !item.getStateCode().equals(FinalState.SUCCESS.getCode()))) {
+        if (!isAllSuccess(dependents)) {
             throw new TaskExecuteException(String.format("当前任务[%s]依赖的其他任务尚未执行成功", task));
         }
         logger.debug("当前任务[{}]依赖的其他任务都已执行成功", task);
+    }
+
+    protected boolean isAllSuccess(List<Task> dependents) {
+        return dependents.stream().allMatch(item -> item.getStateCode().equals(Tense.SUCCESS.getCode()));
     }
 
     protected Object executeCurrent(Task task) {
         logger.info("任务线程池异步执行任务[{}]", task);
         Expression expression = expressionParser.parseExpression(task.getBody());
         Object rootObject = taskIOMapper.readObject(task, task.getInput());
-        logger.debug("取得任务[{}]的输入参数[{}]作为Root", task, rootObject);
+        logger.debug("取得任务[{}]的输入参数[{}]作为root", task, rootObject);
         StandardEvaluationContext evaluationContext = new StandardEvaluationContext(rootObject);
         evaluationContext.setBeanResolver(beanResolver);
         Map<String, Object> variables = getDependentVariables(task);
@@ -191,7 +195,9 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
             logger.debug("不存在依赖于当前任务[{}]的其他任务", task);
             return;
         }
-        dependOn.forEach(this::execute);
+        dependOn.stream()
+                .filter(item -> CollectionUtils.isEmpty(item.getDependent()) || isAllSuccess(item.getDependent()))
+                .forEach(this::execute);
     }
 
 

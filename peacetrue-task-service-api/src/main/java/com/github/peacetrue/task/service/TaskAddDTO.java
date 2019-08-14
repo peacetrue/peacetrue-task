@@ -1,7 +1,9 @@
 package com.github.peacetrue.task.service;
 
 import com.github.peacetrue.core.OperatorCapableImpl;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.Objects;
@@ -9,7 +11,9 @@ import java.util.Objects;
 /**
  * @author xiayx
  */
-@Data
+@Getter
+@Setter
+@ToString
 public class TaskAddDTO<Id, OperatorId> extends OperatorCapableImpl<OperatorId> {
 
     private String groupId;

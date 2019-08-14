@@ -36,6 +36,6 @@ dependencies {
     testCompile 'org.springframework.data:spring-data-commons'
     testCompile 'com.h2database:h2'
     testCompile 'ch.qos.logback:logback-classic'
-    testCompile project(":peacetrue-task-executor-impl")
+    testCompile project(path: ':peacetrue-task-executor-impl', configuration: 'testArtifacts')
 
 }

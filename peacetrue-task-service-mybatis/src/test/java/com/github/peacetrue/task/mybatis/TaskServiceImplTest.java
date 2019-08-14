@@ -2,6 +2,7 @@ package com.github.peacetrue.task.mybatis;
 
 import com.github.pagehelper.autoconfigure.PageHelperAutoConfiguration;
 import com.github.peacetrue.spring.util.BeanUtils;
+import com.github.peacetrue.task.executor.SolveQuestion;
 import com.github.peacetrue.task.executor.TaskExecutorAutoConfiguration;
 import com.github.peacetrue.task.service.*;
 import org.junit.Assert;
@@ -43,45 +44,27 @@ public class TaskServiceImplTest {
 
     @Test
     public void add() throws Exception {
-        TaskAddDTO<Long, Long> dto = new TaskAddDTO<>();
-        dto.setGroupId("Order-1-uploadVideo");
-        dto.setName("1");
-        dto.setBody("@solveQuestion.submitQuestion(1000)");
-        dto.setInput("[1,2,3]");
-        dto.setOperatorId(1L);
+        TaskAddDTO<Long, Long> findQuestion = new TaskAddDTO<>();
+        findQuestion.setGroupId("solveQuestion");
+        findQuestion.setName("findQuestion");
+        findQuestion.setBody("@solveQuestion.findQuestion('安宁',1000)");
+        findQuestion.setOperatorId(1L);
 
-        TaskAddDTO<Long, Long> dto1 = new TaskAddDTO<>();
-        dto1.setGroupId("Order-1-uploadVideo");
-        dto1.setName("2");
-        dto1.setBody("@solveQuestion.submitQuestion(1000)");
-        dto1.setInput("[1,2,3]");
-        dto1.setOperatorId(1L);
+        TaskAddDTO<Long, Long> thinkPlan = new TaskAddDTO<>();
+        thinkPlan.setGroupId("solveQuestion");
+        thinkPlan.setName("thinkPlan");
+        thinkPlan.setBody("@solveQuestion.thinkPlan(#outputs[0],1000)");
+        thinkPlan.setOperatorId(1L);
+        findQuestion.setDependOn(Collections.singletonList(thinkPlan));
 
-        TaskAddDTO<Long, Long> dto2 = new TaskAddDTO<>();
-        dto2.setGroupId("Order-1-uploadVideo");
-        dto2.setName("3");
-        dto2.setBody("@solveQuestion.submitQuestion(1000)");
-        dto2.setInput("[1,2,3]");
-        dto2.setOperatorId(1L);
+        TaskAddDTO<Long, Long> execute = new TaskAddDTO<>();
+        execute.setGroupId("solveQuestion");
+        execute.setName("execute");
+        execute.setBody("@solveQuestion.execute(#outputs[0],1000)");
+        execute.setOperatorId(1L);
+        thinkPlan.setDependOn(Collections.singletonList(execute));
 
-        TaskAddDTO<Long, Long> dto3 = new TaskAddDTO<>();
-        dto3.setGroupId("Order-1-uploadVideo");
-        dto3.setName("4");
-        dto3.setBody("@solveQuestion.submitQuestion(1000)");
-        dto3.setInput("[1,2,3]");
-        dto3.setOperatorId(1L);
-
-        TaskAddDTO<Long, Long> dto4 = new TaskAddDTO<>();
-        dto4.setGroupId("Order-1-uploadVideo");
-        dto4.setName("4");
-        dto4.setBody("@solveQuestion.submitQuestion(1000)");
-        dto4.setInput("[1,2,3]");
-        dto4.setOperatorId(1L);
-
-        dto.setDependOn(Arrays.asList(dto1, dto2));
-        dto1.setDependOn(Collections.singletonList(dto3));
-        dto2.setDependOn(Collections.singletonList(dto4));
-        TaskVO add = taskService.add(dto);
+        TaskVO add = taskService.add(findQuestion, true);
         System.out.println(add);
         Thread.sleep(5000L);
     }
@@ -89,29 +72,29 @@ public class TaskServiceImplTest {
     @Test
     public void addList() throws Exception {
         TaskAddDTO<Long, Long> dto = new TaskAddDTO<>();
-        dto.setGroupId("Order-1-uploadVideo");
+        dto.setGroupId("solveQuestion");
         dto.setName("1");
-        dto.setBody("@solveQuestion.submitQuestion(1000)");
+        dto.setBody("@solveQuestion.findQuestion('安宁',1000)");
         dto.setInput("[1,2,3]");
         dto.setOperatorId(1L);
 
         TaskAddDTO<Long, Long> dto1 = new TaskAddDTO<>();
-        dto1.setGroupId("Order-1-uploadVideo");
+        dto1.setGroupId("solveQuestion");
         dto1.setName("2");
-        dto1.setBody("@solveQuestion.submitQuestion(1000)");
+        dto1.setBody("@solveQuestion.findQuestion('安宁',1000)");
         dto1.setInput("[1,2,3]");
         dto1.setOperatorId(1L);
 
         TaskAddDTO<Long, Long> dto2 = new TaskAddDTO<>();
-        dto2.setGroupId("Order-1-uploadVideo");
+        dto2.setGroupId("solveQuestion");
         dto2.setName("3");
-        dto2.setBody("@solveQuestion.submitQuestion(1000)");
+        dto2.setBody("@solveQuestion.findQuestion('安宁',1000)");
         dto2.setInput("[1,2,3]");
         dto2.setOperatorId(1L);
-        
+
         dto.setDependOn(Collections.singletonList(dto2));
         dto1.setDependOn(Collections.singletonList(dto2));
-        List<TaskVO> add = taskService.add(Arrays.asList(dto,dto1));
+        List<TaskVO> add = taskService.add(Arrays.asList(dto, dto1));
         System.out.println(add);
         Thread.sleep(5000L);
     }

@@ -1,7 +1,6 @@
 package com.github.peacetrue.task.executor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.peacetrue.task.mybatis.Question;
 import org.junit.Test;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;

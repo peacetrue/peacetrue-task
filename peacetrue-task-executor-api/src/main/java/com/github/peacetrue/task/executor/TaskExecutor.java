@@ -14,5 +14,5 @@ public interface TaskExecutor {
      * @return the future of execute task
      * @throws TaskExecuteException any exception occur in execute
      */
-    Future execute(Task task) throws TaskExecuteException;
+    <T> Future<T> execute(Task task) throws TaskExecuteException;
 }

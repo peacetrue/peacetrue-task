@@ -26,6 +26,10 @@ public class TaskImpl implements Task {
     public TaskImpl() {
     }
 
+    public TaskImpl(String body) {
+        this.body = body;
+    }
+
     public TaskImpl(String body, String input) {
         this.body = body;
         this.input = input;

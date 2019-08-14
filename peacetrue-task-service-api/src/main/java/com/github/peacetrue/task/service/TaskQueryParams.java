@@ -14,6 +14,7 @@ public class TaskQueryParams implements Serializable {
     private static final long serialVersionUID = 0L;
 
     private String groupId;
+    private String name;
     private String body;
     private String input;
     private String stateCode;

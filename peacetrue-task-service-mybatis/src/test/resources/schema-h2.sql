@@ -26,10 +26,10 @@ CREATE TABLE task_dependency
 
 
 insert into task (id, group_id, name, input, body, state_code, output, exception, duration, creator_id, created_time, modifier_id, modified_time)
-values (1, '解决问题', 'submitQuestion', null, '@solveQuestion.submitQuestion(1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
+values (1, '解决问题', 'findQuestion', null, '@solveQuestion.findQuestion(''安宁'',1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
 
 insert into task (id, group_id, name, input, body, state_code, output, exception, duration, creator_id, created_time, modifier_id, modified_time)
-values (2, '解决问题', 'thinkPlan', null, '@solveQuestion.thinkPlan(#output_submitQuestion,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
+values (2, '解决问题', 'thinkPlan', null, '@solveQuestion.thinkPlan(#output_findQuestion,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);
 
 insert into task (id, group_id, name, input, body, state_code, output, exception, duration, creator_id, created_time, modifier_id, modified_time)
 values (3, '解决问题', 'execute', null, '@solveQuestion.execute(#output_thinkPlan,1000)', 'todo', null, null, null, 1, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP);

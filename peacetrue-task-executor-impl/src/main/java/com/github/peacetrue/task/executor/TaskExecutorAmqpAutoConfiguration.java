@@ -19,10 +19,10 @@ import org.springframework.core.annotation.Order;
  * @author xiayx
  */
 @Configuration
+@ConditionalOnProperty(prefix = "peacetrue.task.amqp", name = "enabled", havingValue = "true")
 @ConditionalOnClass({RabbitAutoConfiguration.class, AmqpTemplate.class})
 @ImportAutoConfiguration(RabbitAutoConfiguration.class)
 @EnableConfigurationProperties(TaskExecutorAmqpProperties.class)
-@ConditionalOnProperty(prefix = "peacetrue.task.amqp", name = "enabled", havingValue = "true")
 public class TaskExecutorAmqpAutoConfiguration {
 
     private TaskExecutorAmqpProperties properties;

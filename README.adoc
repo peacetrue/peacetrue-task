@@ -10,19 +10,78 @@ v1.0, 2019-05-19: SNAPSHOT
 :testsourcedir: src/test/java
 :source-highlighter: highlightjs
 
+== 缘起
+接到一个需求，将所有视频上传到SFTP服务器后，再上传一个complete.txt，包含之前所有上传的视频信息。
+上传视频是一项耗时的工作，需要后台异步执行，执行完成后再进行其他操作，也涉及到异步执行。
+
+为了实现以上需求，就设计了这个任务组件；
+可以创建任务、查询任务、执行任务、查看任务执行状态，执行失败后再次执行。
+有点类似"XXL_JOB"，"XXL_JOB"可以定时反复执行，而任务组件只需要一次性立即执行。
+
+比较耗时的操作，都可以通过任务在后台执行；
+用户先提交任务，过段时间后，再查看任务执行情况，
+如果执行成功，就获取执行结果，
+没有执行完成，就过段时间后再来，直到成功为止。
+
+比如说，导出数据时，SQL查询比较耗时，可以提交一个导出任务，
+导出完成后将文件存在阿里云上，用户看到导出完成后，就从阿里云下载文件。
+
 == 流程说明
 image::flow.png[]
 
 == 模块说明
 image::structure.png[]
 
+== 功能
+.任务结构
+* 主键：泛型
+* 组名：一组任务共同完成一项工作
+* 任务名
+* 执行内容
+* 执行参数
+* 状态：待执行、执行中、执行成功、执行失败
+* 输出结果
+* 异常信息
+* 耗时：毫秒
+* 依赖任务：当前任务依赖的其他任务
+* 创建者主键：泛型
+* 创建时间
+* 修改者主键：泛型
+* 修改时间
+
+相同组名、任务名、执行内容、执行参数的任务认为是同一个任务。
+
+主键、创建者主键、修改者主键的类型可根据实际情况指定。
+通过程序的两端（控制器和数据库）确定类型后，中间处理过程中的类型也就确定了。
+
+=== 新增任务
+* 新增单个任务
+* 新增多个任务
+* 任务可包含依赖关系
+* 新增完成后可指定是否立即执行
+
+=== 查询任务
+* 分页查询任务信息
+* 可按任务组、任务名、执行内容、执行参数、输出结果模糊查询
+* 可按状态匹配查询
+* 可按时间范围查询
+
+=== 获取任务
+根据任务主键查询任务
+
+=== 执行任务
+* 执行单个任务
+* 执行一组任务中所有未完成的任务
+
+任务执行完成后，自动执行依赖于当前任务的其他任务。
+
 == 示例项目
 * 运行``peacetrue-task-sample/src/main/java/com/github/peacetrue/task/TaskApplication.java``启动服务
 * 运行``peacetrue-task-ui/test/task-list.html``查看页面效果
 
 == 使用说明
-.配置快照仓库
-[source%nowrap,gradle]
+=== 配置快照仓库
+[source%nowrap,maven]
 ----
 <repository>
     <id>sonatype-snapshots</id>
@@ -30,47 +89,231 @@ image::structure.png[]
 </repository>
 ----
 
-.使用执行器
-[source%nowrap,gradle]
+任务组件相关jar包都已上传至'sonatype'的快照仓库中了，最新版本是'2.3.0-SNAPSHOT'。
+
+=== 使用执行器
+.配置执行器依赖
+[source%nowrap,maven]
 ----
 <dependency>
   <groupId>com.github.peacetrue.task</groupId>
   <artifactId>peacetrue-task-executor-impl</artifactId>
-  <version>2.1-SNAPSHOT</version>
+  <version>2.3.0-SNAPSHOT</version>
 </dependency>
 ----
 
-.使用持久化和执行器
-[source%nowrap,gradle]
+.引用执行器
+[source%nowrap,java]
+----
+@Autowired
+private TaskExecutor taskExecutor;
+----
+
+.编写任务
+[source%nowrap,java]
+----
+TaskImpl findQuestion = new TaskImpl("@solveQuestion.findQuestion('安宁',1000)");
+----
+我们通过'SPEL'表达式编写执行内容，``@solveQuestion.findQuestion``对应``SolveQuestion.findQuestion``方法。
+``SolveQuestion``源码如下：
+
+[source%nowrap,java]
+----
+include::peacetrue-task-executor-impl/src/test/java/com/github/peacetrue/task/executor/SolveQuestion.java[tags=class]
+----
+以上直接将参数值写在表达式中，我们也可以通过引用获取参数值：
+[source%nowrap,java]
+----
+TaskImpl findQuestion = new TaskImpl("@solveQuestion.findQuestion(#root,1000)"); <1>
+findQuestion.setInput(taskIOMapper.writeObject(findQuestion, "安宁")); <2>
+----
+<1> #root引用``Task.input``的值
+<2> ``TaskIOMapper``用于将对象序列化为字符串以及将字符串序列化为对象
+
+接下来我们看一个完整的例子：
+[source%nowrap,java]
+----
+include::peacetrue-task-executor-impl/src/test/java/com/github/peacetrue/task/executor/TaskExecutorImplTest.java[tags=class]
+----
+
+你除了可以使用#outputs变量外，还可以使用#tasks来引用所有依赖的任务，#task_0或者#task[0]引用依赖的第一个任务。
+你可以通过配置修改变量的名称：
+[source%nowrap,properties]
+----
+peacetrue.task.variableNames.tasks=tasks #所有依赖的任务
+peacetrue.task.variableNames.taskPrefix=task_ #依赖的指定任务前缀，后面跟一个自定义的任务标识
+peacetrue.task.variableNames.outputs=outputs #所有依赖任务的输出
+peacetrue.task.variableNames.outputPrefix=output_ #依赖指定任务的输出，后面跟一个自定义的任务标识
+----
+
+你可以通过扩展``TaskExecutorImpl``添加自定义变量：
+----
+@Bean
+public TaskExecutorImpl taskExecutor() {
+    return new TaskExecutorImpl() {
+        @Override
+        protected Map<String, Object> getDependentVariables(Task task) {
+            return super.getDependentVariables(task);
+        }
+    };
+}
+----
+
+配置task标识，以便引用需要的task，默认使用依赖任务的索引：
+----
+@Bean(name = TASK_ID)
+public BiFunction<Task, Integer, String> taskId() {
+    return (task, integer) -> integer.toString();
+}
+----
+
+=== 使用持久化
+[source%nowrap,maven]
 ----
 <dependency>
   <groupId>com.github.peacetrue.task</groupId>
   <artifactId>peacetrue-task-service-mybatis</artifactId>
-  <version>2.1-SNAPSHOT</version>
+  <version>2.3.0-SNAPSHOT</version>
 </dependency>
 <dependency>
   <groupId>com.github.peacetrue.task</groupId>
   <artifactId>peacetrue-task-executor-impl</artifactId>
-  <version>2.1-SNAPSHOT</version>
+  <version>2.3.0-SNAPSHOT</version>
 </dependency>
 ----
 
-.使用前端展示
-[source%nowrap,gradle]
+在执行器的基础上，将任务信息进行持久化。
+
+.引用任务服务
+[source%nowrap,java]
+----
+@Autowired
+private TaskService taskService;
+----
+
+.添加并执行任务
+[source%nowrap,java]
+----
+@Test
+public void add() throws Exception {
+    TaskAddDTO<Long, Long> findQuestion = new TaskAddDTO<>();
+    findQuestion.setGroupId("solveQuestion");
+    findQuestion.setName("findQuestion");
+    findQuestion.setBody("@solveQuestion.findQuestion('安宁',1000)");
+    findQuestion.setOperatorId(1L);
+
+    TaskAddDTO<Long, Long> thinkPlan = new TaskAddDTO<>();
+    thinkPlan.setGroupId("solveQuestion");
+    thinkPlan.setName("thinkPlan");
+    thinkPlan.setBody("@solveQuestion.thinkPlan(#outputs[0],1000)");
+    thinkPlan.setOperatorId(1L);
+    findQuestion.setDependOn(Collections.singletonList(thinkPlan));
+
+    TaskAddDTO<Long, Long> execute = new TaskAddDTO<>();
+    execute.setGroupId("solveQuestion");
+    execute.setName("execute");
+    execute.setBody("@solveQuestion.execute(#outputs[0],1000)");
+    execute.setOperatorId(1L);
+    thinkPlan.setDependOn(Collections.singletonList(execute));
+
+    TaskVO add = taskService.add(findQuestion, true);
+    System.out.println(add);
+}
+----
+
+
+=== 使用前端展示
+[source%nowrap,maven]
 ----
 <dependency>
   <groupId>com.github.peacetrue.task</groupId>
   <artifactId>peacetrue-task-controller</artifactId>
-  <version>2.1-SNAPSHOT</version>
+  <version>2.3.0-SNAPSHOT</version>
 </dependency>
 <dependency>
   <groupId>com.github.peacetrue.task</groupId>
   <artifactId>peacetrue-task-ui</artifactId>
-  <version>2.1-SNAPSHOT</version>
+  <version>2.3.0-SNAPSHOT</version>
 </dependency>
 ----
 
+== 视频上传示例
+以下是使用任务组件实现我们最初需求的示例。
 
+[source%nowrap,java]
+----
+@Autowired
+private TaskService taskService;
+@Autowired
+private OssService ossService;
+@Autowired
+private ObjectMapperWrapper objectMapperWrapper;
+@Autowired
+private PingAnVideoUploader uploader;
+
+public String sendToSftp(String folderPath, String fileName, String url) {
+    try {
+        Resource payload = new UrlResource(url);
+        payload = new FilenameResourceAdapter(payload, fileName);
+        uploader.sendToSftp(MessageBuilder.withPayload(payload).setHeader("remote-target-dir", folderPath).build());
+        return fileName;
+    } catch (MalformedURLException e) {
+        throw new IllegalArgumentException(url, e);
+    }
+}
+
+public String sendToSftp(String folderPath, String fileName, List<String> outputs) {
+    Resource payload = new FilenameResourceAdapter(new ByteArrayResource(String.join("|", outputs).getBytes()), fileName);
+    uploader.sendToSftp(MessageBuilder.withPayload(payload).setHeader("remote-target-dir", folderPath).build());
+    return fileName;
+}
+
+@EventListener
+@SuppressWarnings("unchecked")
+public void push(VideoCompressedEvent event) {
+    TaskVO task = (TaskVO) event.getSource();
+    if (!task.getSourceCode().equals(TaskSource.CJT_PING_AN.getCode())) return;
+    logger.info("任务[{}]的所有视频都压缩完成后，推送至平安服务器", task.getCode());
+
+
+    String folderPath = DateFormatUtils.format(new Date(), "/yyyy/MM/dd/") + task.getExpressCode();
+    String groupId = "task_" + task.getCode() + "_pushToPingAn";
+
+    //推送"complete.txt"的任务
+    TaskAddDTO completeTask = new TaskAddDTO();
+    completeTask.setGroupId(groupId);
+    completeTask.setName("complete.txt");
+    completeTask.setBody("@pingAnVideoPushHandler.sendToSftp(#root[0],#root[1],#outputs)");
+    completeTask.setInput(objectMapperWrapper.writeValueAsString(new String[]{folderPath, "complete.txt"}));
+    completeTask.setOperatorId("//TODO");
+
+    //推送视频的任务
+    List<TaskAddDTO> pushTasks = new LinkedList<>();
+    for (Map.Entry<TaskVideoDTO.Type, String[]> entry : event.getPayload().entrySet()) {
+        if (entry.getValue() == null) continue;
+        int index = 0;
+        for (String video : entry.getValue()) {
+            TaskAddDTO pushTask = new TaskAddDTO();
+            pushTask.setGroupId(groupId);
+            pushTask.setName(String.format("%s(%s)", entry.getKey().getName(), ++index));
+            pushTask.setBody("@pingAnVideoPushHandler.sendToSftp(#root[0],#root[1],#root[2])");
+            String[] params = {folderPath, Paths.get(video).getFileName().toString(), ossService.getInnerViewUrl(video)};
+            pushTask.setInput(objectMapperWrapper.writeValueAsString(params));
+            pushTask.setOperatorId("//TODO");
+            logger.debug(pushTask.getName());
+            pushTask.setDependOn(Collections.singletonList(completeTask));//completeTask依赖于当前推送视频的任务
+            pushTasks.add(pushTask);
+        }
+    }
+
+    taskService.add(pushTasks, true); //添加任务并立即执行
+}
+----
+
+== 问题及改进
+=== 输入参数和输出内容的存储
+* json
+* 二进制码（java序列化）
 
 
 

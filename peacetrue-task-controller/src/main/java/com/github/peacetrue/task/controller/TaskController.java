@@ -48,10 +48,17 @@ public class TaskController {
     }
 
     @ResponseBody
-    @PostMapping(value = "${peacetrue.task.execute-url}")
+    @PostMapping(value = "${peacetrue.task.execute-url}", params = "id")
     public void execute(TaskIdExecuteDTO dto) {
-        logger.info("执行任务[{}]", dto);
+        logger.info("执行单个任务[{}]", dto);
         taskService.execute(BeanUtils.map(dto, TaskIdExecuteDTO.class));
+    }
+
+    @ResponseBody
+    @PostMapping(value = "${peacetrue.task.execute-url}", params = "groupId")
+    public void execute(TaskGroupIdExecuteDTO dto) {
+        logger.info("执行一组任务[{}]", dto);
+        taskService.execute(BeanUtils.map(dto, TaskGroupIdExecuteDTO.class));
     }
 
 }
