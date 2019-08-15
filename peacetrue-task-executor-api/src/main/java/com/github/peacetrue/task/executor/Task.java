@@ -14,7 +14,7 @@ public interface Task extends Serializable {
     String getBody();
 
     /** 获取任务输入参数 */
-    String getInput();
+    Object getInput();
 
     /*------任务执行结果相关--------*/
 
@@ -25,7 +25,10 @@ public interface Task extends Serializable {
     void setDuration(Long duration);
 
     /** 设置输出结果 */
-    void setOutput(String output);
+    void setOutput(Object output);
+
+    /** 设置异常信息 */
+    void setException(Throwable exception);
 
     /*------任务依赖相关--------*/
 
@@ -33,7 +36,7 @@ public interface Task extends Serializable {
     String getStateCode();
 
     /** 获取任务输出结果 */
-    String getOutput();
+    Object getOutput();
 
     /** 获取当前任务依赖的其他任务 */
     List<Task> getDependent();

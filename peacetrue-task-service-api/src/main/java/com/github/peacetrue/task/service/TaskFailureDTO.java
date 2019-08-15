@@ -9,15 +9,9 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class TaskFailureDTO<Id, OperatorId> extends TaskDoingDTO<Id, OperatorId> {
-    private String exception;
+
+    private static final long serialVersionUID = 0L;
+
+    private Throwable exception;
     private Long duration;
-
-    public TaskFailureDTO() {
-    }
-
-    public TaskFailureDTO(Id id, String remark, String exception, Long duration) {
-        super(id, remark);
-        this.exception = exception;
-        this.duration = duration;
-    }
 }

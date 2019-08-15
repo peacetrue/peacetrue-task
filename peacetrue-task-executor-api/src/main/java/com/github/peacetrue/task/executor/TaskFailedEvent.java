@@ -8,11 +8,11 @@ import java.util.Objects;
  */
 public class TaskFailedEvent extends EventObject {
 
-    private Throwable throwable;
+    private Throwable exception;
 
-    public TaskFailedEvent(Task source, Throwable throwable) {
+    public TaskFailedEvent(Task source, Throwable exception) {
         super(source);
-        this.throwable = Objects.requireNonNull(throwable);
+        this.exception = Objects.requireNonNull(exception);
     }
 
     @Override
@@ -20,7 +20,7 @@ public class TaskFailedEvent extends EventObject {
         return (Task) super.getSource();
     }
 
-    public Throwable getThrowable() {
-        return throwable;
+    public Throwable getException() {
+        return exception;
     }
 }

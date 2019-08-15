@@ -12,12 +12,12 @@ import java.util.EventObject;
 public class TaskCompletedEvent extends EventObject {
 
     private Object output;
-    private Throwable throwable;
+    private Throwable exception;
 
-    public TaskCompletedEvent(Task source, @Nullable Object output, @Nullable Throwable throwable) {
+    public TaskCompletedEvent(Task source, @Nullable Object output, @Nullable Throwable exception) {
         super(source);
         this.output = output;
-        this.throwable = throwable;
+        this.exception = exception;
     }
 
     @Override

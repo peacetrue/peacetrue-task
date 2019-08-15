@@ -19,7 +19,7 @@ public class TaskAddDTO<Id, OperatorId> extends OperatorCapableImpl<OperatorId> 
     private String groupId;
     private String name;
     private String body;
-    private String input;
+    private Object input;
     private List<Id> dependentIds;
     private List<TaskAddDTO<Id, OperatorId>> dependOn;
 

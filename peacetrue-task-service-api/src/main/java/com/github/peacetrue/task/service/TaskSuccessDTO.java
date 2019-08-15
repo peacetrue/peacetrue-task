@@ -9,15 +9,10 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class TaskSuccessDTO<Id, OperatorId> extends TaskDoingDTO<Id, OperatorId> {
-    private String output;
+
+    private static final long serialVersionUID = 0L;
+
+    private Object output;
     private Long duration;
 
-    public TaskSuccessDTO() {
-    }
-
-    public TaskSuccessDTO(Id id, String remark, String output, Long duration) {
-        super(id, remark);
-        this.output = output;
-        this.duration = duration;
-    }
 }

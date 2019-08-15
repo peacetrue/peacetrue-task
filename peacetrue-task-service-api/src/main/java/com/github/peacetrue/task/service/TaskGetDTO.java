@@ -13,5 +13,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TaskGetDTO<T> implements Serializable {
+
+    private static final long serialVersionUID = 0L;
+
     private T id;
 }

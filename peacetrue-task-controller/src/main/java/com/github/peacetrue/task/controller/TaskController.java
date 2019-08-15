@@ -27,9 +27,9 @@ public class TaskController {
 
     @ResponseBody
     @PostMapping(value = "${peacetrue.task.add-url}")
-    public TaskVO add(TaskAddDTO dto) {
+    public TaskVO add(TaskAddDTO dto, boolean execute) {
         logger.info("新增任务[{}]", dto);
-        return taskService.add(BeanUtils.map(dto, TaskAddDTO.class));
+        return taskService.add(BeanUtils.map(dto, TaskAddDTO.class), execute);
     }
 
     @ResponseBody

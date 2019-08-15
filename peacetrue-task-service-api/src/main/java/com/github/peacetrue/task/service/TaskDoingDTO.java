@@ -15,6 +15,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class TaskDoingDTO<Id, OperatorId> extends OperatorCapableImpl<OperatorId> {
+
+    private static final long serialVersionUID = 0L;
+
     private Id id;
     private String remark;
 }

@@ -45,8 +45,6 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
     @Qualifier(TaskExecutorAutoConfiguration.EXECUTOR_SERVICE_TRIGGER)
     private ExecutorService triggerExecutorService;
     @Autowired
-    private TaskIOMapper taskIOMapper;
-    @Autowired
     @Qualifier(TaskExecutorAutoConfiguration.TASK_ID)
     private BiFunction<Task, Integer, String> taskId;
     @Autowired
@@ -114,20 +112,16 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
             logger.debug("当前任务[{}]不依赖其他任务", task);
             return;
         }
-        if (!isAllSuccess(dependents)) {
+        if (!TaskExecutor.isAllSuccess(dependents)) {
             throw new TaskExecuteException(String.format("当前任务[%s]依赖的其他任务尚未执行成功", task));
         }
         logger.debug("当前任务[{}]依赖的其他任务都已执行成功", task);
     }
 
-    protected boolean isAllSuccess(List<Task> dependents) {
-        return dependents.stream().allMatch(item -> item.getStateCode().equals(Tense.SUCCESS.getCode()));
-    }
-
     protected Object executeCurrent(Task task) {
         logger.info("任务线程池异步执行任务[{}]", task);
         Expression expression = expressionParser.parseExpression(task.getBody());
-        Object rootObject = taskIOMapper.readObject(task, task.getInput());
+        Object rootObject = task.getInput();
         logger.debug("取得任务[{}]的输入参数[{}]作为root", task, rootObject);
         StandardEvaluationContext evaluationContext = new StandardEvaluationContext(rootObject);
         evaluationContext.setBeanResolver(beanResolver);
@@ -146,7 +140,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         variables.put(variableNames.getTasks(), dependent);
         IntStream.range(0, dependent.size()).forEach(index -> variables.put(variableNames.getTaskPrefix() + taskId.apply(dependent.get(index), index), dependent.get(index)));
 
-        List<Object> outputs = dependent.stream().map(item -> taskIOMapper.readObject(item, item.getOutput())).collect(Collectors.toList());
+        List<Object> outputs = dependent.stream().map(Task::getOutput).collect(Collectors.toList());
         variables.put(variableNames.getOutputs(), outputs);
         IntStream.range(0, outputs.size()).forEach(index -> variables.put(variableNames.getOutputPrefix() + taskId.apply(dependent.get(index), index), outputs.get(index)));
         return variables;
@@ -162,29 +156,29 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
         eventPublisher.publishEvent(new TaskStartedEvent(task));
     }
 
-    protected void completeTask(Task task, long started, Object output, Throwable throwable) {
-        logger.info("任务[{}]执行完成，同步任务执行结果[{}]", task, output, throwable);
+    protected void completeTask(Task task, long started, Object output, Throwable exception) {
+        logger.info("任务[{}]执行完成，同步任务执行结果[{}]", task, output, exception);
         task.setDuration(System.currentTimeMillis() - started);
-        if (throwable == null) {
+        if (exception == null) {
             task.setStateCode(Tense.SUCCESS.getCode());
-            task.setOutput(taskIOMapper.writeObject(task, output));
+            task.setOutput(output);
         } else {
             task.setStateCode(Tense.FAILURE.getCode());
-            task.setOutput(throwable.getMessage());
+            task.setException(exception);
         }
     }
 
-    protected void triggerCompleted(Task task, @Nullable Object output, @Nullable Throwable throwable) {
-        if (throwable == null) {
+    protected void triggerCompleted(Task task, @Nullable Object output, @Nullable Throwable exception) {
+        if (exception == null) {
             logger.debug("任务[{}]执行成功，触发成功事件", task);
             eventPublisher.publishEvent(new TaskSucceededEvent(task, output));
         } else {
             logger.warn("任务[{}]执行异常，触发失败事件", task);
-            eventPublisher.publishEvent(new TaskFailedEvent(task, throwable));
+            eventPublisher.publishEvent(new TaskFailedEvent(task, exception));
         }
 
         logger.warn("任务[{}]执行完成，触发完成事件", task);
-        eventPublisher.publishEvent(new TaskCompletedEvent(task, output, throwable));
+        eventPublisher.publishEvent(new TaskCompletedEvent(task, output, exception));
     }
 
     protected void executeDependOn(Task task) {
@@ -196,7 +190,7 @@ public class TaskExecutorImpl implements TaskExecutor, BeanFactoryAware {
             return;
         }
         dependOn.stream()
-                .filter(item -> CollectionUtils.isEmpty(item.getDependent()) || isAllSuccess(item.getDependent()))
+                .filter(item -> CollectionUtils.isEmpty(item.getDependent()) || TaskExecutor.isAllSuccess(item.getDependent()))
                 .forEach(this::execute);
     }
 

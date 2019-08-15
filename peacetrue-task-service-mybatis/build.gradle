@@ -29,6 +29,8 @@ dependencies {
     compile 'org.springframework.data:spring-data-commons'
     compile "org.springframework.boot:spring-boot-autoconfigure"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    compile 'com.fasterxml.jackson.core:jackson-databind'
+    compile 'com.github.peacetrue:peacetrue-jackson:1.2.2-SNAPSHOT'
 
     testCompile 'junit:junit'
     testCompile 'org.springframework.boot:spring-boot-starter-test'

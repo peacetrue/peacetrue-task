@@ -12,11 +12,11 @@ import com.github.peacetrue.task.executor.TaskExecutor;
 import com.github.peacetrue.task.executor.TaskFailedEvent;
 import com.github.peacetrue.task.executor.TaskStartedEvent;
 import com.github.peacetrue.task.executor.TaskSucceededEvent;
+import com.github.peacetrue.task.serialize.SerializeService;
 import com.github.peacetrue.task.service.*;
 import com.github.peacetrue.util.EntityNotFoundException;
 import lombok.Data;
 import org.mybatis.dynamic.sql.SqlBuilder;
-import org.mybatis.dynamic.sql.SqlColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +29,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -52,27 +53,26 @@ public class TaskServiceImpl implements TaskService {
     private AssociatedSourceBuilder associatedSourceBuilder;
     @Autowired
     private TaskExecutor taskExecutor;
+    @Autowired
+    private SerializeService<String> serializeService;
 
     @Transactional
     public TaskVO add(TaskAddDTO dto, boolean execute) {
         logger.info("新增任务[{}]{}", dto, execute ? "，并立即执行" : "");
 
         TaskVO vo = new TaskVO();
-        this.add(vo, dto, new Saved());
+        Saved saved = new Saved();
+        this.add(vo, dto, saved);
         if (!execute) return vo;
 
         try {
-            this.execute(vo);
+            Set<TaskVO> vos = this.toSet(vo);
+            Map<Object, TaskExecuteDTO> dtos = this.toExecuteDTO(vos, swap(saved.getTasks()));
+            this.execute(dtos.get(vo.getId()));
         } catch (Exception e) {
             logger.warn("执行任务[{}]异常", vo, e);
         }
         return vo;
-    }
-
-    @Data
-    public static class Saved {
-        private Map<TaskAddDTO, TaskVO> tasks = new HashMap<>();
-        private Map<Object, Set<Object>> dependencies = new HashMap<>();
     }
 
     protected void add(TaskVO vo, TaskAddDTO dto, Saved saved) {
@@ -84,6 +84,7 @@ public class TaskServiceImpl implements TaskService {
         if (vo.getId() == null) {
             Task task = this.saveTask(dto);
             BeanUtils.copyProperties(task, vo);
+            BeanUtils.copyProperties(dto, vo);
             vo.setDependentIds(new LinkedList());
             vo.setDependOn(new LinkedList<>());
             saved.getTasks().put(dto, vo);
@@ -110,6 +111,7 @@ public class TaskServiceImpl implements TaskService {
 
     protected Task saveTask(TaskAddDTO dto) {
         Task task = BeanUtils.map(dto, Task.class);
+        task.setInput(serializeService.serialize(dto.getInput()));
         task.setStateCode(Tense.TODO.getCode());
         task.setCreatorId(dto.getOperatorId());
         task.setCreatedTime(new Date());
@@ -147,20 +149,6 @@ public class TaskServiceImpl implements TaskService {
         for (TaskAddDTO dependOnDTO : dependOn) {
             this.saveDependOn(saved.getTasks().get(dependOnDTO), dependOnDTO.getDependOn(), saved);
         }
-    }
-
-    protected void execute(TaskVO taskVO) {
-        Set<TaskVO> vos = this.toSet(taskVO);
-        Map<Object, TaskExecuteDTO> dtoMap = toExecuteDTO(vos);
-        this.execute(dtoMap.get(taskVO.getId()));
-    }
-
-    private Map<Object, TaskExecuteDTO> toExecuteDTO(Collection<TaskVO> vos) {
-        List<TaskExecuteDTO> dtos = vos.stream().map(vo -> BeanUtils.map(vo, TaskExecuteDTO.class)).collect(Collectors.toList());
-        dtos.forEach(dto -> dto.setDependOn(null));
-        Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
-        this.setDependency(dtoMap);
-        return dtoMap;
     }
 
     private Set<TaskVO> toSet(TaskVO taskVO) {
@@ -216,7 +204,7 @@ public class TaskServiceImpl implements TaskService {
         if (!execute) return treeTaskVos;
 
         Set<TaskVO> listTaskVos = treeTaskVos.stream().flatMap(vo -> toSet(vo).stream()).collect(Collectors.toSet());
-        Map<Object, TaskExecuteDTO> executes = this.toExecuteDTO(listTaskVos);
+        Map<Object, TaskExecuteDTO> executes = this.toExecuteDTO(listTaskVos, swap(saved.getTasks()));
         treeTaskVos.forEach(vo -> {
             try {
                 this.execute(executes.get(vo.getId()));
@@ -226,6 +214,7 @@ public class TaskServiceImpl implements TaskService {
         });
         return treeTaskVos;
     }
+
 
     @Override
     public Page<TaskVO> query(TaskQueryParams params, Pageable pageable) {
@@ -333,7 +322,7 @@ public class TaskServiceImpl implements TaskService {
         Task update = new Task();
         update.setId(task.getId());
         update.setStateCode(Tense.SUCCESS.getCode());
-        update.setOutput(dto.getOutput());
+        update.setOutput(serializeService.serialize(dto.getOutput()));
         update.setDuration(dto.getDuration());
         update.setModifierId(dto.getOperatorId());
         update.setModifiedTime(new Date());
@@ -353,7 +342,7 @@ public class TaskServiceImpl implements TaskService {
         Task update = new Task();
         update.setId(task.getId());
         update.setStateCode(Tense.FAILURE.getCode());
-        update.setException(dto.getException());
+        update.setException(dto.getException().getMessage());
         update.setDuration(dto.getDuration());
         update.setModifierId(dto.getOperatorId());
         update.setModifiedTime(new Date());
@@ -363,11 +352,13 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public void execute(TaskGroupIdExecuteDTO dto) {
         logger.info("执行任务组[{}]", dto);
+
         List<Task> tasks = this.taskMapper.selectByGroupId(dto.getGroupId());
         logger.debug("取得任务组[{}]下的所有任务(共[{}]个)", dto.getGroupId(), tasks.size());
         if (tasks.isEmpty()) return;
 
-        Map<Object, TaskExecuteDTO> dtos = this.toExecuteDTO(tasks, dto);
+        Map<Object, OperatorCapable> taskOperators = tasks.stream().collect(Collectors.toMap(Function.identity(), task -> dto));
+        Map<Object, TaskExecuteDTO> dtos = this.toExecuteDTO(taskOperators);
         for (TaskExecuteDTO executeDTO : dtos.values()) {
             if (Tense.SUCCESS.getCode().equals(executeDTO.getStateCode())) {
                 logger.debug("跳过已经执行成功的任务[{}]", executeDTO);
@@ -382,15 +373,32 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    private Map<Object, TaskExecuteDTO> toExecuteDTO(List<Task> tasks, OperatorCapable operatorCapable) {
-        List<TaskExecuteDTO> dtos = BeanUtils.replaceAsList(tasks, TaskExecuteDTO.class);
-        dtos.forEach(dto1 -> {
-            dto1.setOperatorId(operatorCapable.getOperatorId());
-            dto1.setOperatorName(operatorCapable.getOperatorName());
-        });
+    public static <K, V> Map<V, K> swap(Map<K, V> map) {
+        return map.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+    }
+
+    private <T> Map<Object, TaskExecuteDTO> toExecuteDTO(Collection<T> tasks, Map<T, ? extends OperatorCapable> operators) {
+        return this.toExecuteDTO(tasks.stream().collect(Collectors.toMap(Function.identity(), operators::get)));
+    }
+
+    private Map<Object, TaskExecuteDTO> toExecuteDTO(Map<Object, OperatorCapable> tasks) {
+        List<TaskExecuteDTO> dtos = new LinkedList<>();
+        for (Object task : tasks.keySet()) {
+            dtos.add(this.toExecuteDTO(task, tasks.get(task)));
+        }
         Map<Object, TaskExecuteDTO> dtoMap = BeanUtils.map(dtos, "id");
         this.setDependency(dtoMap);
         return dtoMap;
+    }
+
+    /** {@link Task} or {@link TaskVO} to {@link TaskExecuteDTO} */
+    private TaskExecuteDTO toExecuteDTO(Object task, OperatorCapable operatorCapable) {
+        TaskExecuteDTO dto = new TaskExecuteDTO();
+        BeanUtils.copyProperties(operatorCapable, dto);
+        BeanUtils.copyProperties(task, dto);
+        dto.setInput(serializeService.deserialize((String) BeanUtils.getPropertyValue(task, "input")));
+        dto.setOutput(serializeService.deserialize((String) BeanUtils.getPropertyValue(task, "output")));
+        return dto;
     }
 
     @Override
@@ -401,7 +409,8 @@ public class TaskServiceImpl implements TaskService {
         logger.debug("取得与任务[{}]同组的所有任务(共[{}]个)", dto, tasks.size());
         if (tasks.isEmpty()) return;
 
-        Map<Object, TaskExecuteDTO> dtos = toExecuteDTO(tasks, dto);
+        Map<Task, TaskIdExecuteDTO> operators = tasks.stream().collect(Collectors.toMap(Function.identity(), task -> dto));
+        Map<Object, TaskExecuteDTO> dtos = this.toExecuteDTO(tasks, operators);
         this.taskExecutor.execute(dtos.get(dto.getId()));
     }
 
@@ -433,6 +442,13 @@ public class TaskServiceImpl implements TaskService {
         TaskFailureDTO dto = BeanUtils.map(event.getSource(), TaskFailureDTO.class);
         dto.setRemark("执行任务");
         this.updateStateFailure(dto);
+    }
+
+
+    @Data
+    public static class Saved {
+        private Map<TaskAddDTO, TaskVO> tasks = new HashMap<>();
+        private Map<Object, Set<Object>> dependencies = new HashMap<>();
     }
 
 }

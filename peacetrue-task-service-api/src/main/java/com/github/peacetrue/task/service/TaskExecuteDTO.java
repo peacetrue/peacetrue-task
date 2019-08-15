@@ -16,11 +16,14 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class TaskExecuteDTO<Id, OperatorId> extends TaskIdExecuteDTO<Id, OperatorId> implements Task {
 
+    private static final long serialVersionUID = 0L;
+
     private String name;
-    private String input;
+    private Object input;
     private String body;
     private String stateCode;
-    private String output;
+    private Object output;
+    private Throwable exception;
     private Long duration;
     private List<Task> dependent;
     private List<Task> dependOn;

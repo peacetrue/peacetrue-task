@@ -16,8 +16,6 @@ artifacts {
 dependencies {
     compile project(':peacetrue-task-executor-api')
     compile 'org.slf4j:slf4j-api'
-    compile 'com.fasterxml.jackson.core:jackson-databind'
-    compile 'com.github.peacetrue:peacetrue-jackson:1.2.2-SNAPSHOT'
     compile 'com.github.peacetrue:peacetrue-spring:1.0-SNAPSHOT'
     compile 'org.springframework.boot:spring-boot-autoconfigure'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

@@ -1,8 +1,13 @@
 package com.github.peacetrue.task.mybatis;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.peacetrue.associate.AssociatedSourceBuilder;
 import com.github.peacetrue.associate.AssociatedSourceBuilderImpl;
+import com.github.peacetrue.jackson.ObjectMapperWrapper;
 import com.github.peacetrue.task.executor.Task;
+import com.github.peacetrue.task.serialize.JacksonSerializeService;
+import com.github.peacetrue.task.serialize.SerializeService;
 import com.github.peacetrue.task.service.TaskExecuteDTO;
 import com.github.peacetrue.task.service.TaskService;
 import org.apache.ibatis.annotations.Mapper;
@@ -52,6 +57,27 @@ public class MybatisTaskAutoConfiguration {
     public AssociatedSourceBuilder associatedSourceBuilder() {
         return new AssociatedSourceBuilderImpl();
     }
+
+    @Bean
+    @ConditionalOnMissingBean(SerializeService.class)
+    public SerializeService serializeService(ObjectMapperWrapper wrapper) {
+        return new JacksonSerializeService(wrapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ObjectMapper.class)
+    public ObjectMapper objectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        return objectMapper;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ObjectMapperWrapper.class)
+    public ObjectMapperWrapper objectMapperWrapper(ObjectMapper objectMapper) {
+        return new ObjectMapperWrapper(objectMapper);
+    }
+
 
     @Bean("peacetureTaskId")
     public BiFunction<Task, Integer, String> taskId() {

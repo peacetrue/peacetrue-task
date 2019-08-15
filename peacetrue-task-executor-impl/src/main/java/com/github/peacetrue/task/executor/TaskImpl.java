@@ -16,9 +16,10 @@ import java.util.List;
 public class TaskImpl implements Task {
 
     private String body;
-    private String input;
+    private Object input;
     private String stateCode = Tense.TODO.getCode();
-    private String output;
+    private Object output;
+    private Throwable exception;
     private Long duration;
     private List<Task> dependent;
     private List<Task> dependOn;
@@ -30,12 +31,12 @@ public class TaskImpl implements Task {
         this.body = body;
     }
 
-    public TaskImpl(String body, String input) {
+    public TaskImpl(String body, Object input) {
         this.body = body;
         this.input = input;
     }
 
-    public TaskImpl(String body, String input, TaskImpl... dependent) {
+    public TaskImpl(String body, Object input, TaskImpl... dependent) {
         this.body = body;
         this.input = input;
         if (dependent != null) Arrays.stream(dependent).forEach(this::addDependent);
