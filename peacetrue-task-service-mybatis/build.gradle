@@ -24,13 +24,12 @@ dependencies {
     compile 'org.mybatis:mybatis-spring'
     compile 'com.github.pagehelper:pagehelper-spring-boot-starter:1.2.3'
     compile 'com.github.peacetrue:peacetrue-spring:1.0-SNAPSHOT'
-    compile 'com.github.peacetrue:peacetrue-mybatis:1.0-SNAPSHOT'
+    compile 'com.github.peacetrue:peacetrue-mybatis:1.1.2-SNAPSHOT'
     compile 'com.github.peacetrue:peacetrue-associate:1.0-SNAPSHOT'
     compile 'org.springframework.data:spring-data-commons'
     compile "org.springframework.boot:spring-boot-autoconfigure"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-    compile 'com.fasterxml.jackson.core:jackson-databind'
-    compile 'com.github.peacetrue:peacetrue-jackson:1.2.2-SNAPSHOT'
+    compile 'com.github.peacetrue.serialize:peacetrue-serialize-jackson:1.0-SNAPSHOT'
 
     testCompile 'junit:junit'
     testCompile 'org.springframework.boot:spring-boot-starter-test'

@@ -53,7 +53,7 @@ public final class TaskDynamicSqlSupport {
 
     @Generated("org.mybatis.generator.api.MyBatisGenerator")
     public static final class Task extends SqlTable {
-        public final SqlColumn id = column("id", JDBCType.BIGINT);
+        public final SqlColumn id = column("id");
 
         public final SqlColumn<String> groupId = column("group_id", JDBCType.VARCHAR);
 
@@ -69,11 +69,11 @@ public final class TaskDynamicSqlSupport {
 
         public final SqlColumn<String> exception = column("exception", JDBCType.VARCHAR);
 
-        public final SqlColumn creatorId = column("creator_id", JDBCType.VARCHAR);
+        public final SqlColumn creatorId = column("creator_id");
 
         public final SqlColumn<Date> createdTime = column("created_time", JDBCType.TIMESTAMP);
 
-        public final SqlColumn modifierId = column("modifier_id", JDBCType.VARCHAR);
+        public final SqlColumn modifierId = column("modifier_id");
 
         public final SqlColumn<Date> modifiedTime = column("modified_time", JDBCType.TIMESTAMP);
 
