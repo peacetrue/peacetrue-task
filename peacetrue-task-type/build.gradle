@@ -1,0 +1,9 @@
+description '任务服务类型'
+
+dependencies {
+    compile project(":peacetrue-task-service-api")
+    implementation 'com.github.peacetrue:peacetrue-spring:1.1.1-SNAPSHOT'
+    implementation "org.springframework.boot:spring-boot-autoconfigure"
+    compileOnly "org.springframework.boot:spring-boot-configuration-processor"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+}

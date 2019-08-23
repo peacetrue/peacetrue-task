@@ -4,6 +4,7 @@ include 'peacetrue-task-service-mybatis'
 include 'peacetrue-task-controller'
 include 'peacetrue-task-executor-api'
 include 'peacetrue-task-executor-impl'
+include 'peacetrue-task-type'
 //include 'peacetrue-task-ui'
 include 'peacetrue-task-sample'
                                      

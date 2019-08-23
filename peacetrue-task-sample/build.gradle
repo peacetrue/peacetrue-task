@@ -7,6 +7,7 @@ dependencies {
     compile project(":peacetrue-task-service-mybatis")
     compile project(":peacetrue-task-executor-impl")
     compile project(":peacetrue-task-controller")
+    compile project(":peacetrue-task-type")
     compile 'com.github.peacetrue:peacetrue-result-web:1.0-SNAPSHOT'
     compile 'com.github.peacetrue:peacetrue-result-exception-support:1.0-SNAPSHOT'
     compile 'org.springframework.boot:spring-boot-starter-web'
