@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.IdGenerator;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -54,7 +55,9 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     private TaskExecutor taskExecutor;
     @Autowired
-    private SerializeService<String> serializeService;
+    private SerializeService serializeService;
+    @Autowired(required = false)
+    private IdGenerator idGenerator;
 
     @Transactional
     public TaskVO add(TaskAddDTO dto, boolean execute) {
@@ -111,7 +114,8 @@ public class TaskServiceImpl implements TaskService {
 
     protected Task saveTask(TaskAddDTO dto) {
         Task task = BeanUtils.map(dto, Task.class);
-        task.setInput(serializeService.serialize(dto.getInput()));
+        if (idGenerator != null) task.setId(idGenerator.generateId());
+        task.setInput((String) serializeService.serialize(dto.getInput()));
         task.setStateCode(Tense.TODO.getCode());
         task.setCreatorId(dto.getOperatorId());
         task.setCreatedTime(new Date());
@@ -322,7 +326,7 @@ public class TaskServiceImpl implements TaskService {
         Task update = new Task();
         update.setId(task.getId());
         update.setStateCode(Tense.SUCCESS.getCode());
-        update.setOutput(serializeService.serialize(dto.getOutput()));
+        update.setOutput((String) serializeService.serialize(dto.getOutput()));
         update.setDuration(dto.getDuration());
         update.setModifierId(dto.getOperatorId());
         update.setModifiedTime(new Date());
@@ -396,8 +400,8 @@ public class TaskServiceImpl implements TaskService {
         TaskExecuteDTO dto = new TaskExecuteDTO();
         BeanUtils.copyProperties(operatorCapable, dto);
         BeanUtils.copyProperties(task, dto);
-        dto.setInput(serializeService.deserialize((String) BeanUtils.getPropertyValue(task, "input")));
-        dto.setOutput(serializeService.deserialize((String) BeanUtils.getPropertyValue(task, "output")));
+        dto.setInput(serializeService.deserialize(BeanUtils.getPropertyValue(task, "input")));
+        dto.setOutput(serializeService.deserialize(BeanUtils.getPropertyValue(task, "output")));
         return dto;
     }
 
