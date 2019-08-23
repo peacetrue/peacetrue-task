@@ -34,7 +34,7 @@ public class TaskController {
 
     @ResponseBody
     @GetMapping(value = "${peacetrue.task.query-url}", params = "page")
-    public Page<TaskVO> query(TaskQueryParams params,
+    public Page<TaskVO> query(TaskQueryDTO params,
                               @PageableDefault(sort = "createdTime", direction = Sort.Direction.DESC) Pageable pageable) {
         logger.info("分页查询任务信息[{}]", params);
         return taskService.query(params, pageable);

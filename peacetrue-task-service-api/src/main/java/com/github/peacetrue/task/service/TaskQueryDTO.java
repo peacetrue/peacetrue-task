@@ -9,7 +9,7 @@ import java.io.Serializable;
  * @author xiayx
  */
 @Data
-public class TaskQueryParams implements Serializable {
+public class TaskQueryDTO implements Serializable {
 
     private static final long serialVersionUID = 0L;
 

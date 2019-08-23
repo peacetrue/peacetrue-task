@@ -101,7 +101,7 @@ public class TaskServiceImplTest {
 
     @Test
     public void query() throws Exception {
-        Page<TaskVO> page = taskService.query(new TaskQueryParams(), new PageRequest(0, 10));
+        Page<TaskVO> page = taskService.query(new TaskQueryDTO(), new PageRequest(0, 10));
         logger.info("page.getContent():{}", page.getContent());
         Assert.assertEquals(2, page.getTotalElements());
     }

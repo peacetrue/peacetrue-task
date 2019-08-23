@@ -28,7 +28,7 @@ public interface TaskService {
     List<TaskVO> add(List<TaskAddDTO> tasks, boolean execute);
 
     /** 分页查询任务信息 */
-    Page<TaskVO> query(TaskQueryParams queryParams, Pageable pageable);
+    Page<TaskVO> query(TaskQueryDTO dto, Pageable pageable);
 
     /** 获取单个任务 */
     @Nullable
@@ -65,10 +65,10 @@ public interface TaskService {
     /** 更新任务状态为执行失败 */
     void updateStateFailure(TaskFailureDTO dto);
 
-    /** 执行任务 */
+    /** 执行一组任务中未完成的 */
     void execute(TaskGroupIdExecuteDTO dto);
 
-    /** 执行任务 */
+    /** 执行主键指定的任务 */
     void execute(TaskIdExecuteDTO dto);
 
     /** 执行任务 */

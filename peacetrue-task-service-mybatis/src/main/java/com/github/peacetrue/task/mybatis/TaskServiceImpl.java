@@ -217,18 +217,18 @@ public class TaskServiceImpl implements TaskService {
 
 
     @Override
-    public Page<TaskVO> query(TaskQueryParams params, Pageable pageable) {
-        logger.info("分页查询任务[{}]信息", params);
+    public Page<TaskVO> query(TaskQueryDTO dto, Pageable pageable) {
+        logger.info("分页查询任务[{}]信息", dto);
 
-        if (params == null) params = new TaskQueryParams();
+        if (dto == null) dto = new TaskQueryDTO();
         PageHelper.startPage(pageable.getPageNumber() + 1, pageable.getPageSize());
         List<Task> entities = taskMapper.selectByExample()
-                .where(groupId, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getGroupId())))
-                .and(body, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getBody())))
-                .and(input, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getInput())))
-                .and(stateCode, SqlBuilder.isEqualToWhenPresent(params.getStateCode()))
-                .and(output, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(params.getOutput())))
-                .and(createdTime, SqlBuilder.isBetweenWhenPresent(params.getCreatedTime().getLowerBound()).and(params.getCreatedTime().getUpperBound()))
+                .where(groupId, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(dto.getGroupId())))
+                .and(body, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(dto.getBody())))
+                .and(input, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(dto.getInput())))
+                .and(stateCode, SqlBuilder.isEqualToWhenPresent(dto.getStateCode()))
+                .and(output, SqlBuilder.isLikeWhenPresent(MybatisDynamicUtils.likeValue(dto.getOutput())))
+                .and(createdTime, SqlBuilder.isBetweenWhenPresent(dto.getCreatedTime().getLowerBound()).and(dto.getCreatedTime().getUpperBound()))
                 .orderBy(MybatisDynamicUtils.orders(task, pageable.getSort()))
                 .build().execute();
         logger.debug("共取得'{}'条记录", entities.size());
