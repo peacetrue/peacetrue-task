@@ -2,17 +2,17 @@ description '任务样章'
 
 dependencies {
 
-    compile 'ch.qos.logback:logback-classic'
-    compile 'com.github.peacetrue:peacetrue-spring:1.1-SNAPSHOT'
-    compile project(":peacetrue-task-service-mybatis")
-    compile project(":peacetrue-task-executor-impl")
-    compile project(":peacetrue-task-controller")
-    compile project(":peacetrue-task-type")
-    compile 'com.github.peacetrue:peacetrue-result-web:1.0-SNAPSHOT'
-    compile 'com.github.peacetrue:peacetrue-result-exception-support:1.0-SNAPSHOT'
-    compile 'org.springframework.boot:spring-boot-starter-web'
-    compile project(path: ':peacetrue-task-service-mybatis', configuration: 'testArtifacts')
-    compile 'org.springframework.boot:spring-boot-starter-amqp'
-    compile 'com.rabbitmq:amqp-client:3.6.3'
+    implementation 'ch.qos.logback:logback-classic'
+    implementation 'com.github.peacetrue:peacetrue-spring'
+    implementation project(":peacetrue-task-service-mybatis")
+    implementation project(":peacetrue-task-executor-impl")
+    implementation project(":peacetrue-task-controller")
+    implementation project(":peacetrue-task-type")
+    implementation 'com.github.peacetrue:peacetrue-result-web'
+    implementation 'com.github.peacetrue:peacetrue-result-exception-support'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation project(path: ':peacetrue-task-service-mybatis', configuration: 'testArtifacts')
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    implementation 'com.rabbitmq:amqp-client'
 
 }

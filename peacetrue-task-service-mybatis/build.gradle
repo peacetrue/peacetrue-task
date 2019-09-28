@@ -22,14 +22,14 @@ dependencies {
     compile 'org.mybatis:mybatis'
     compile 'org.mybatis.dynamic-sql:mybatis-dynamic-sql'
     compile 'org.mybatis:mybatis-spring'
-    compile 'com.github.pagehelper:pagehelper-spring-boot-starter:1.2.3'
-    compile 'com.github.peacetrue:peacetrue-spring:1.0-SNAPSHOT'
-    compile 'com.github.peacetrue:peacetrue-mybatis:1.1.2-SNAPSHOT'
-    compile 'com.github.peacetrue:peacetrue-associate:1.0-SNAPSHOT'
+    compile 'com.github.pagehelper:pagehelper-spring-boot-starter'
+    compile 'com.github.peacetrue:peacetrue-spring'
+    compile 'com.github.peacetrue:peacetrue-mybatis'
+    compile 'com.github.peacetrue:peacetrue-associate'
     compile 'org.springframework.data:spring-data-commons'
     compile "org.springframework.boot:spring-boot-autoconfigure"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-    compile 'com.github.peacetrue.serialize:peacetrue-serialize-jackson:1.0-SNAPSHOT'
+    compile 'com.github.peacetrue.serialize:peacetrue-serialize-jackson'
 
     testCompile 'junit:junit'
     testCompile 'org.springframework.boot:spring-boot-starter-test'
